@@ -1,0 +1,8 @@
+build/
+out/
+.beni-cache/
+.scratch/
+.direnv/
+result
+.env
+.envrc

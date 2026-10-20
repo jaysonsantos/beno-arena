@@ -2,6 +2,9 @@
 
 - Write all game code in beni.
 - Do not write TypeScript or JavaScript.
+- Beni-generated JavaScript is the build output. Do not edit it.
+- Prepare Cloudflare Workers with Durable Objects as the deployment target.
+- Treat celld as an assessed alternative until the user selects it.
 - Use only the APIs that beni core and its platforms provide.
 - If an API is missing, search the open issues in `canassa/beni`.
 - Add the game requirement to an existing issue, or open an issue with evidence and completion criteria.

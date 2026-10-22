@@ -1,0 +1,184 @@
+--! An illustrative arena. These shapes are preview data, not server state.
+
+import Appearance exposing (Color)
+import Html exposing (Html)
+
+
+pub view : Color, Bool, Bool → Html msg
+view color moving grid =
+    <div class={arenaClass moving grid}>
+        <div class="arena-top">
+            <span class="preview-badge"><span class="status-dot" /> ARENA PREVIEW</span>
+            <span class="arena-coordinate">FIELD 001</span>
+        </div>
+        <svg
+            class="arena-art"
+            viewBox="0 0 1000 680"
+            preserveAspectRatio="xMidYMid slice"
+            role="img"
+            aria-label="An arena preview with four colorful snakes and scattered food"
+        >
+            <defs>
+                <pattern id="arena-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#28372c" stroke-width="1" />
+                </pattern>
+            </defs>
+            <rect class="grid" width="1000" height="680" fill="url(#arena-grid)" />
+            <g class="food">
+                <For each={List.range 0 119} keyed={False}>
+                    {λindex → pellet index}
+                </For>
+            </g>
+            <g class="snake snake-orange">
+                <path
+                    d="M -35 250 C 90 250 65 110 170 110 C 250 110 235 230 320 230 L 363 230"
+                    fill="none"
+                    stroke="#3b2e24"
+                    stroke-width="31"
+                    stroke-linecap="round"
+                />
+                <path
+                    d="M -35 250 C 90 250 65 110 170 110 C 250 110 235 230 320 230 L 363 230"
+                    fill="none"
+                    stroke="#ffa76e"
+                    stroke-width="21"
+                    stroke-linecap="round"
+                />
+                {eyes 364 230}
+            </g>
+            <g class="snake snake-blue">
+                <path
+                    d="M 770 -30 L 770 105 C 770 185 905 155 905 245 C 905 315 820 320 820 390"
+                    fill="none"
+                    stroke="#23363d"
+                    stroke-width="26"
+                    stroke-linecap="round"
+                />
+                <path
+                    d="M 770 -30 L 770 105 C 770 185 905 155 905 245 C 905 315 820 320 820 390"
+                    fill="none"
+                    stroke="#89cef4"
+                    stroke-width="16"
+                    stroke-linecap="round"
+                />
+                <g transform="translate(820 390) rotate(90)">{eyes 0 0}</g>
+            </g>
+            <g class="snake snake-lilac">
+                <path
+                    d="M 770 720 C 770 600 930 620 930 530 L 930 490"
+                    fill="none"
+                    stroke="#332d3c"
+                    stroke-width="29"
+                    stroke-linecap="round"
+                />
+                <path
+                    d="M 770 720 C 770 600 930 620 930 530 L 930 490"
+                    fill="none"
+                    stroke="#c7acf1"
+                    stroke-width="19"
+                    stroke-linecap="round"
+                />
+                <g transform="translate(930 490) rotate(-90)">{eyes 0 0}</g>
+            </g>
+            <g class="snake snake-player">
+                <path
+                    d="M 190 535 C 110 535 115 400 205 400 L 425 400 C 525 400 535 280 450 280 L 420 280 C 330 280 345 170 430 170 C 510 170 565 200 565 270"
+                    fill="none"
+                    stroke="#31402a"
+                    stroke-width="44"
+                    stroke-linecap="round"
+                />
+                <path
+                    d="M 190 535 C 110 535 115 400 205 400 L 425 400 C 525 400 535 280 450 280 L 420 280 C 330 280 345 170 430 170 C 510 170 565 200 565 270"
+                    fill="none"
+                    stroke={Appearance.paint color}
+                    stroke-width="32"
+                    stroke-linecap="round"
+                />
+                <path
+                    d="M 190 531 C 115 531 119 400 205 400 L 425 400"
+                    fill="none"
+                    stroke="#ffffff"
+                    stroke-opacity="0.14"
+                    stroke-width="5"
+                    stroke-linecap="round"
+                />
+                <g transform="translate(565 270) rotate(90)">{eyes 0 0}</g>
+                <g transform="translate(566 316)">
+                    <rect x="-29" y="-12" width="58" height="25" rx="12" fill="#edf2e4" />
+                    <text class="you-label" text-anchor="middle" y="5" fill="#19241b">YOU</text>
+                </g>
+            </g>
+            <g class="arena-cross" stroke="#71806d" stroke-width="1.5">
+                <path
+                    d="M 38 56 L 38 72 M 30 64 L 46 64 M 962 56 L 962 72 M 954 64 L 970 64 M 38 610 L 38 626 M 30 618 L 46 618"
+                />
+            </g>
+        </svg>
+        <div class="arena-bottom">
+            <div class="preview-caption">
+                <span class="tiny-label">A TASTE OF THE ARENA</span><p>There is always a bigger snake.</p>
+            </div>
+            <span class="arena-scale"><span /> 100 UNITS</span>
+        </div>
+    </div>
+
+
+arenaClass : Bool, Bool → String
+arenaClass moving grid =
+    "arena"
+        ++ (if moving then " has-motion" else "")
+        ++ (if grid then "" else " no-grid")
+
+
+pellet : Int → Html msg
+pellet index =
+    x = 35 + Int.mod (index * 137) 930
+    y = 55 + Int.mod (index * 83) 560
+    tint =
+        case Int.mod index 4 of
+            0 →
+                "#c5f277"
+            1 →
+                "#ffa76e"
+            2 →
+                "#89cef4"
+            _ →
+                "#c7acf1"
+    <circle
+        cx={String.fromInt x}
+        cy={String.fromInt y}
+        r={if Int.mod index 5 == 0 then "4" else "2.5"}
+        fill={tint}
+        opacity="0.72"
+    />
+
+
+eyes : Int, Int → Html msg
+eyes x y =
+    <g transform={"translate(${String.fromInt x} ${String.fromInt y})"}>
+        <circle cx="1" cy="-6" r="4.5" fill="#fbfff4" />
+        <circle cx="1" cy="6" r="4.5" fill="#fbfff4" />
+        <circle cx="3" cy="-6" r="2.1" fill="#142017" />
+        <circle cx="3" cy="6" r="2.1" fill="#142017" />
+    </g>
+
+
+pub portrait : Color → Html msg
+portrait color =
+    <svg
+        class="snake-portrait"
+        viewBox="0 0 230 100"
+        role="img"
+        aria-label={Appearance.name color ++ " snake"}
+    >
+        <path
+            d="M 35 66 C 10 66 12 31 40 31 L 115 31 C 143 31 143 69 170 69 L 195 69"
+            fill="none"
+            stroke={Appearance.paint color}
+            stroke-width="21"
+            stroke-linecap="round"
+        />
+        {eyes 195 69}
+        <circle cx="213" cy="35" r="4" fill={Appearance.paint color} opacity="0.5" />
+    </svg>

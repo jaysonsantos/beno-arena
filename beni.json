@@ -1,0 +1,9 @@
+{
+  "name": "snake-arena",
+  "build": {
+    "platform": "browser-tea",
+    "paths": ["frontend"],
+    "out": "build/page"
+  },
+  "html": "frontend/index.html"
+}

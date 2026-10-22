@@ -1,0 +1,9 @@
+{
+  "name": "snake-arena-worker",
+  "build": {
+    "platform": "cloudflare",
+    "paths": ["../game", "."],
+    "out": "../build/worker"
+  },
+  "exports": ["Arena"]
+}

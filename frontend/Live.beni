@@ -1,0 +1,330 @@
+--! The live arena reads authoritative snapshots. The page sends input only.
+
+import Appearance
+import Browser.Events as Events
+import Cmd exposing (Cmd)
+import Dom
+import Duration
+import Html exposing (Html)
+import Interpolation
+import Protocol
+import Rules as Game
+import Sub exposing (Sub)
+import Time
+import WebSocket exposing (Socket)
+
+
+pub type alias Model =
+    active : Bool
+    socket : Maybe Socket
+    current : Maybe Protocol.Snapshot.Type
+    previous : Maybe Protocol.Snapshot.Type
+    blend : Float
+    name : String
+    color : Int
+    note : String
+    pending : Maybe Game.Point
+
+
+pub type Msg
+    = Heard WebSocket.Event
+    | Frame Float
+    | Pointed Float Float Float Float
+    | Key String
+    | Flush
+    | Stop
+    | Unsent WebSocket.WriteError
+
+
+pub init : Model
+init =
+    { active = False
+    , socket = Nothing
+    , current = Nothing
+    , previous = Nothing
+    , blend = 1
+    , name = ""
+    , color = 0
+    , note = "Choose Enter arena to connect."
+    , pending = Nothing
+    }
+
+
+pub start : String, Int, Model → Model × Cmd Msg
+start name color model =
+    next = { model | name = name, color = color, note = "Connect to the arena…" }
+    case model.socket of
+        Just socket →
+            ( next, joinCommand socket name color )
+        Nothing →
+            ( { next | active = True, current = Nothing, previous = Nothing }, Cmd.none )
+
+
+pub update : Msg, Model → Model × Cmd Msg
+update msg model =
+    case msg of
+        Heard (WebSocket.Opened socket) →
+            ( { model | socket = Just socket, note = "The arena connection is open." }
+            , joinCommand socket model.name model.color
+            )
+        Heard (WebSocket.Received text) →
+            case Protocol.Packet.parse text of
+                Err _ →
+                    ( { model
+                        | active = False
+                        , socket = Nothing
+                        , note = "The server sent an invalid packet. Connect again."
+                      }
+                    , Cmd.none
+                    )
+                Ok packet →
+                    case packet of
+                        Protocol.Packet.Welcome _ →
+                            ( model, Cmd.none )
+                        Protocol.Packet.Joined data →
+                            ( { model
+                                | note =
+                                    if data.alive then
+                                        "Move the pointer, drag a finger, or use the arrow keys."
+                                    else
+                                        "The arena is full. Try Enter arena again."
+                              }
+                            , Cmd.none
+                            )
+                        Protocol.Packet.State data →
+                            if
+                                Maybe.withDefault
+                                    (Maybe.map model.current λs → data.snapshot.tick ≤ s.tick)
+                                    False
+                            then
+                                ( model, Cmd.none )
+                            else
+                                ( { model
+                                    | previous = model.current
+                                    , current = Just data.snapshot
+                                    , blend = 0
+                                    , note =
+                                        if data.snapshot.alive then
+                                            "Move the pointer, drag a finger, or use the arrow keys."
+                                        else
+                                            "Your snake died. Choose Enter arena to join again."
+                                  }
+                                , Cmd.none
+                                )
+                        Protocol.Packet.Rejected data →
+                            ( { model | note = data.message }, Cmd.none )
+        Heard (WebSocket.Closed _) →
+            ( { model
+                | active = False
+                , socket = Nothing
+                , pending = Nothing
+                , note = "The connection closed. Choose Enter arena to connect again."
+              }
+            , Cmd.none
+            )
+        Heard (WebSocket.Failed _) →
+            ( { model
+                | active = False
+                , socket = Nothing
+                , pending = Nothing
+                , note = "The arena is not available. Start the local Worker, then connect again."
+              }
+            , Cmd.none
+            )
+        Frame delta →
+            ( { model | blend = min 1 (model.blend + delta / toFloat Game.tickMillis) }, Cmd.none )
+        Pointed x y boxWidth boxHeight →
+            case model.current of
+                Just snapshot →
+                    position =
+                        { x =
+                            clamp
+                                (snapshot.cameraX + x / max 1 boxWidth * Protocol.viewWidth)
+                                0
+                                Game.width
+                        , y =
+                            clamp
+                                (snapshot.cameraY + y / max 1 boxHeight * Protocol.viewHeight)
+                                0
+                                Game.height
+                        }
+                    ( { model | pending = Just position }, Cmd.none )
+                Nothing →
+                    ( model, Cmd.none )
+        Key key →
+            case model.current of
+                Just snapshot →
+                    me = List.head (List.filter snapshot.snakes λs → s.id == snapshot.you)
+                    position =
+                        Maybe.withDefault
+                            (Maybe.andThen me λs →
+                                Maybe.map (List.head s.body) λsample →
+                                    { x = sample.x, y = sample.y }
+                            )
+                            { x = snapshot.cameraX + Protocol.viewWidth / 2
+                            , y = snapshot.cameraY + Protocol.viewHeight / 2
+                            }
+                    point =
+                        case key of
+                            "ArrowUp" →
+                                Just { x = position.x, y = 0 }
+                            "ArrowDown" →
+                                Just { x = position.x, y = Game.height }
+                            "ArrowLeft" →
+                                Just { x = 0, y = position.y }
+                            "ArrowRight" →
+                                Just { x = Game.width, y = position.y }
+                            _ →
+                                Nothing
+                    ( { model | pending = point }, Cmd.none )
+                Nothing →
+                    ( model, Cmd.none )
+        Flush →
+            case ( model.socket, model.pending ) of
+                ( Just socket, Just point ) →
+                    ( { model | pending = Nothing }, command socket (Protocol.Input.Aim point) )
+                _ →
+                    ( model, Cmd.none )
+        Stop →
+            ( { init | note = "You left the live arena. The illustration is a preview." }
+            , Cmd.none
+            )
+        Unsent _ →
+            ( { model
+                | active = False
+                , socket = Nothing
+                , note = "The input did not reach the arena. Connect again."
+              }
+            , Cmd.none
+            )
+
+
+joinCommand : Socket, String, Int → Cmd Msg
+joinCommand socket name color = command socket (Protocol.Input.Join { name = name, color = color })
+
+
+command : Socket, Protocol.Input.Type → Cmd Msg
+command socket input =
+    case Protocol.Input.print input of
+        Ok text →
+            WebSocket.send socket text Unsent
+        Err _ →
+            Cmd.none
+
+
+pub subscriptions : Model → Sub Msg
+subscriptions model =
+    if model.active then
+        Sub.batch
+            [ WebSocket.listen "/arena/main/ws" [] Heard
+            , Events.onAnimationFrameDelta Frame
+            , Time.every (Duration.millis Game.tickMillis) λ_ → Flush
+            , Events.onKeyDown λevent → Key (Html.key event)
+            ]
+    else
+        Sub.none
+
+
+pointer : Html.Pointer → Msg
+pointer event =
+    case Dom.box "live-arena" of
+        Ok box →
+            Pointed (Html.localX event) (Html.localY event) box.width box.height
+        Err _ →
+            Pointed 0 0 Protocol.viewWidth Protocol.viewHeight
+
+
+pub view : Model → Html Msg
+view model =
+    <div class="arena live-arena">
+        <div class="arena-top">
+            <span class="preview-badge"><span class="status-dot" /> LIVE MULTIPLAYER</span><button onClick={Stop}>Leave arena</button>
+        </div>
+        {case model.current of
+            Nothing →
+                <div class="live-wait"><h2>Connect to the arena</h2><p>{model.note}</p></div>
+            Just latest →
+                frame = Interpolation.between model.previous latest model.blend
+                <svg
+                    id="live-arena"
+                    class="arena-art"
+                    viewBox={"${frame.cameraX} ${frame.cameraY} ${Protocol.viewWidth} ${Protocol.viewHeight}"}
+                    preserveAspectRatio="none"
+                    role="img"
+                    aria-label="Live multiplayer snake arena"
+                    style="touch-action: none"
+                    onPointerMove={pointer}
+                    onPointerDown={pointer}
+                >
+                    <rect
+                        x="0"
+                        y="0"
+                        width={String.fromFloat Game.width}
+                        height={String.fromFloat Game.height}
+                        fill="#17251c"
+                        stroke="#71806d"
+                        stroke-width="4"
+                    />
+                    <For each={frame.food} keyed={False}>
+                        {λpoint →
+                            <circle
+                                cx={String.fromFloat point.x}
+                                cy={String.fromFloat point.y}
+                                r="3"
+                                fill="#c5f277"
+                                opacity="0.8"
+                            />
+                        }
+                    </For>
+                    <For each={frame.snakes} keyed={False}>
+                        {λsnake →
+                            <g
+                                class={if snake.id == latest.you then
+                                          "snake-player live-snake"
+                                       else
+                                          "live-snake"
+                                      }
+                            >
+                                <For each={snake.body} keyed={False}>
+                                    {λpart →
+                                        <circle
+                                            cx={String.fromFloat part.x}
+                                            cy={String.fromFloat part.y}
+                                            r={String.fromFloat Game.radius}
+                                            fill={paint snake.color}
+                                        />
+                                    }
+                                </For>
+                                {case List.head snake.body of
+                                    Just position →
+                                        <text
+                                            x={String.fromFloat position.x}
+                                            y={String.fromFloat (position.y - 20)}
+                                            text-anchor="middle"
+                                            fill="#eff0e8"
+                                            font-size="14"
+                                        >
+                                            {snake.name}
+                                        </text>
+                                    Nothing →
+                                        <g />
+                                }
+                            </g>
+                        }
+                    </For>
+                </svg>
+        }
+        <div class="live-scores">
+            <span class="tiny-label">LONGEST SNAKES</span><ol><For each={Maybe.withDefault (Maybe.map model.current .scores) []} keyed={False}>{λscore → <li><span>{score.name}</span><strong>{String.fromInt score.length}</strong></li>}</For></ol>
+        </div>
+        <div class="arena-bottom">
+            <div class="preview-caption">
+                <span class="tiny-label">SERVER STATE · 20 TICKS / SECOND</span><p>{model.note}</p>
+            </div>
+        </div>
+    </div>
+
+
+paint : Int → String
+paint color =
+    Appearance.paint (Maybe.withDefault (List.get Appearance.colors color) Appearance.Moss)

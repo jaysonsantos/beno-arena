@@ -1,8 +1,11 @@
---! The lobby works locally. Multiplayer waits for beni's WebSocket platforms.
+--! The lobby keeps the preview separate from the live authoritative arena.
 
 import Appearance exposing (Color, Moss)
 import Arena
+import Cmd exposing (Cmd)
 import Html exposing (Html)
+import Live
+import Sub exposing (Sub)
 import Tea
 
 
@@ -13,6 +16,7 @@ type alias Model =
     grid : Bool
     help : Bool
     preview : Bool
+    live : Live.Model
 
 
 type Msg
@@ -22,31 +26,59 @@ type Msg
     | ToggleGrid
     | ToggleHelp
     | TogglePreview
+    | EnterArena
+    | LiveMsg Live.Msg
 
 
 nameLimit : Int
 nameLimit = 18
 
 
-init : ⊤ → Model
-init ⊤ = { name = "", color = Moss, moving = True, grid = True, help = False, preview = False }
+init : ⊤ → Model × Cmd Msg
+init ⊤ =
+    ( { name = ""
+      , color = Moss
+      , moving = True
+      , grid = True
+      , help = False
+      , preview = False
+      , live = Live.init
+      }
+    , Cmd.none
+    )
 
 
-update : Msg, Model → Model
+update : Msg, Model → Model × Cmd Msg
 update msg model =
     case msg of
         NameChanged name →
-            { model | name = String.left name nameLimit }
+            ( { model | name = String.left name nameLimit }, Cmd.none )
         ColorChanged color →
-            { model | color = color }
+            ( { model | color = color }, Cmd.none )
         ToggleMotion →
-            { model | moving = not model.moving }
+            ( { model | moving = not model.moving }, Cmd.none )
         ToggleGrid →
-            { model | grid = not model.grid }
+            ( { model | grid = not model.grid }, Cmd.none )
         ToggleHelp →
-            { model | help = not model.help }
+            ( { model | help = not model.help }, Cmd.none )
         TogglePreview →
-            { model | preview = not model.preview }
+            ( { model | preview = not model.preview }, Cmd.none )
+
+        EnterArena →
+            color =
+                Maybe.withDefault
+                    (List.head
+                        (List.filter
+                            (List.indexedMap Appearance.colors λindex value → ( index, value ))
+                            λpair → pair.1 == model.color
+                        )
+                    )
+                    ( 0, Moss )
+            ( live, command ) = Live.start (playerName model.name) color.0 model.live
+            ( { model | live = live }, Cmd.map command "live-arena" LiveMsg )
+        LiveMsg message →
+            ( live, command ) = Live.update message model.live
+            ( { model | live = live }, Cmd.map command "live-arena" LiveMsg )
 
 
 view : Model → Html Msg
@@ -77,15 +109,33 @@ view model =
                     <p class="eyebrow">GROW INTO TROUBLE</p><h1>Eat. Grow. <span>Stay alive.</span></h1>
                 </div>
                 <div class="build-tag">
-                    <span class="status-dot" /> FRONTEND PREVIEW <span class="edition">/ 001</span>
+                    <span class="status-dot" /> {if model.live.active then
+                                                    "LIVE MULTIPLAYER"
+                                                 else
+                                                    "ARENA PREVIEW"
+                                                } <span class="edition">/ 001</span>
                 </div>
             </section>
             <div class={if model.preview then "game-layout wide-preview" else "game-layout"}>
                 <section class="arena-section" aria-label="Arena preview">
-                    {Arena.view model.color model.moving model.grid}
-                    <div class="arena-toolbar">
+                    {if model.live.active then
+                        Html.map (Live.view model.live) LiveMsg
+                     else
+                        Arena.view model.color model.moving model.grid
+                    }
+                    <div
+                        class={if model.live.active then
+                                  "arena-toolbar live-toolbar"
+                               else
+                                  "arena-toolbar"
+                              }
+                    >
                         <span class="toolbar-label">
-                            <span class="hollow-dot" /> TAKE A LOOK AROUND
+                            <span class="hollow-dot" /> {if model.live.active then
+                                                            "LIVE ARENA"
+                                                         else
+                                                            "TAKE A LOOK AROUND"
+                                                        }
                         </span>
                         <div class="toolbar-actions">
                             <button onClick={ToggleGrid} aria-pressed={boolText model.grid}>
@@ -146,11 +196,11 @@ view model =
                             </For>
                         </div>
                     </fieldset>
-                    <button class="join-button" disabled={True}>
+                    <button class="join-button" onClick={EnterArena}>
                         Enter arena <span aria-hidden="true">↗</span>
                     </button>
                     <p class="connection-note">
-                        <span class="hollow-dot" /> Multiplayer is not connected yet.
+                        <span class="hollow-dot" /> {model.live.note}
                     </p>
                     <div class="lobby-divider" />
                     <div class="lobby-footnote">
@@ -171,7 +221,7 @@ view model =
             </section>
         </main>
         <footer class="site-footer">
-            <span>BUILT IN <strong>BENI</strong></span><span>JUST ONE MORE ROUND.</span><span>PREVIEW · NO LIVE PLAYERS</span>
+            <span>BUILT IN <strong>BENI</strong></span><span>JUST ONE MORE ROUND.</span><span>{if model.live.active then "LIVE · AUTHORITATIVE SERVER" else "PREVIEW · NO LIVE PLAYERS"}</span>
         </footer>
     </div>
 
@@ -199,11 +249,11 @@ guide =
     <section class="guide" aria-label="How to play">
         <div><p class="eyebrow">THE SHORT VERSION</p><h2>Aim for food. Avoid the bodies.</h2></div>
         <p>
-            In the full game, move the mouse or drag a finger to steer. Your snake moves all the time.
+            In the arena, move the mouse or drag a finger to steer. Your snake moves all the time.
             Eat food to grow. If your head touches another snake, your run ends.
         </p>
         <p>
-            This preview lets you choose a name and color. The arena is an illustration. Live matches are not available yet.
+            Choose a name and color. Enter arena connects to the local Worker. The preview remains an illustration.
         </p>
         <button class="help-button" onClick={ToggleHelp}>
             Got it <span aria-hidden="true">✓</span>
@@ -212,4 +262,8 @@ guide =
 
 
 main : Tea.Program
-main = Tea.sandbox { init = init, update = update, view = view }
+main = Tea.element { init = init, update = update, view = view, subscriptions = subscriptions }
+
+
+subscriptions : Model → Sub Msg
+subscriptions model = Sub.map (Live.subscriptions model.live) LiveMsg

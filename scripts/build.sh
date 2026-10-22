@@ -4,7 +4,5 @@ cd "$(dirname "$0")/.."
 if [[ "${SNAKE_TOOLCHAIN:-}" != "1" ]]; then
   exec nix develop --command bash scripts/build.sh "$@"
 fi
-beni build --release
-cp frontend/style.css build/page/style.css
-mkdir -p build/page/fonts
-cp frontend/fonts/* build/page/fonts/
+bash scripts/build-page.sh
+bash scripts/build-worker.sh

@@ -1,0 +1,16 @@
+{
+  "name": "snake-arena",
+  "main": "build/worker/_worker.mjs",
+  "compatibility_date": "2026-05-18",
+  "compatibility_flags": ["enable_request_signal"],
+  "durable_objects": {
+    "bindings": [{ "name": "ARENAS", "class_name": "Arena" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Arena"] }],
+  "assets": {
+    "directory": "build/page",
+    "binding": "ASSETS",
+    "run_worker_first": ["/arena/*", "/health"]
+  },
+  "dev": { "ip": "127.0.0.1", "port": 4173 }
+}

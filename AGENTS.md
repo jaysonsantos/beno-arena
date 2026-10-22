@@ -8,8 +8,11 @@
 - Use only the APIs that beni core and its platforms provide.
 - If an API is missing, search the open issues in `canassa/beni`.
 - Add the game requirement to an existing issue, or open an issue with evidence and completion criteria.
-- The user authorized frontend, CSS, and Zorg/Nix preparation after the capability report.
-- Continue that preparation with existing APIs. Do not invent a network substitute.
+- Use Cloudflare Workers and Durable Objects for local multiplayer.
+- Keep the object tick selector pure. Keep one `Object.define` call.
+- Use the pinned beni revision's Workers tools shell. Do not add a second tools pin.
+- Check every client input with the shared schema.
+- Do not use `wrangler dev --remote`.
 - Keep the arena preview visibly separate from live multiplayer.
 - Keep project instructions in `AGENTS.md`.
 - Use small commits with Conventional Commits messages.
@@ -30,7 +33,10 @@ Read it in full before work.
 
 | Path | Purpose |
 |---|---|
-| `frontend/` | Beni lobby, SVG preview, page shell, and CSS |
+| `game/` | Pure rules, interpolation, random state, and shared schemas |
+| `server/` | Worker routing, the authoritative object, sockets, and checkpoints |
+| `frontend/` | Beni lobby, separate SVG preview, live view, page shell, and CSS |
+| `tests/` | Beni rule and transcript checks, plus driver steps |
 | `nix/` | Pinned Zorg and beni compiler derivations |
 | `scripts/` | Build, local server, lint, and browser checks |
 | `build/page/` | Generated static assets |
@@ -38,12 +44,13 @@ Read it in full before work.
 
 ## Commands
 
-- Open the tools: `nix develop`.
+- Open the build tools: `nix develop`.
+- Open the local Worker tools: `nix develop .#workers`.
 - Build the compiler: `nix build .#beni`.
-- Build the page: `scripts/build.sh`.
+- Build the page and Worker: `scripts/build.sh`.
 - Serve the page locally: `scripts/dev.sh`.
 - Run lint: `scripts/lint.sh`.
-- Run browser checks: `scripts/test.sh`.
+- Run rule, local Worker, and browser checks: `scripts/test.sh`.
 - Run both checks: `scripts/all.sh`.
 - Package the static page: `nix build`.
 - Do not release or deploy during this task.

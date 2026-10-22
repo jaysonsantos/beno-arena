@@ -1,44 +1,58 @@
 # Snake Arena
 
-A multiplayer snake game frontend in beni.
-The current page includes a lobby and an illustrative arena.
-Choose a name and color, open the guide, or change the preview controls.
-Live multiplayer still needs upstream platform APIs.
+A small multiplayer snake game in beni.
+One Cloudflare Durable Object owns each arena.
+The browser sends input and draws interpolated SVG snapshots from the server.
 
-All application source is beni.
-The build produces JavaScript. The project contains no hand-written JavaScript or TypeScript.
+Eat food to grow. Avoid other snakes and the arena wall.
+A dead snake becomes food. Choose **Enter arena** to join again.
+The score list shows the five longest live snakes.
+The initial arena remains a separate illustration until you connect.
 
-## Run
+All game source and test assertions use beni.
+The compiler produces JavaScript. Do not edit that output.
+The tests reuse beni's unchanged Miniflare driver.
+
+## Run locally
 
 ```sh
-nix develop
+nix develop .#workers
 scripts/dev.sh
 ```
 
-Open `http://127.0.0.1:4173`.
-Press Ctrl-C to stop the local server.
-After a source change, stop and restart the command.
+Open `http://127.0.0.1:4173` in two browser tabs.
+Choose a name and color in each tab. Choose **Enter arena**.
+Move the pointer, drag a finger, or use the arrow keys.
+Choose **Leave arena** to return to the preview.
+Press Ctrl-C in the terminal to stop the local Worker.
 
-The first shell start builds the pinned beni compiler with Zorg.
-The shell does not build the game or run its tests.
+The shell builds the pinned beni compiler with Zorg on its first use.
+The `workers` shell takes Wrangler and Miniflare from that beni revision's own shell.
+It adds no second tools pin. The server listens on `127.0.0.1`.
+The command uses local workerd. It needs no Cloudflare account.
 
 ## Configure
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SNAKE_PORT` | `4173` | Local preview port |
-| `CHROMIUM_PATH` | `chromium` | Browser binary for tests; set this on macOS |
+| `SNAKE_PORT` | `4173` | Local Worker port |
+| `CHROMIUM_PATH` | `chromium` | Browser binary for render checks |
 
-For direnv, create a local `.envrc`:
+The browser uses `/arena/main/ws`.
+The Worker maps each `/arena/<name>/...` route to one named object.
+Different arena names use separate state and scores.
+The object permits at most 16 sockets.
+It runs one simulation step every 50 milliseconds while a snake lives.
+
+The `.envrc` file stays local:
 
 ```sh
 dotenv_if_exists
 use flake
 ```
 
-Run `direnv allow`.
-Copy `.env.example` to `.env` if you need local settings.
-The server always binds to `127.0.0.1`.
+After you read that file, run `direnv allow`.
+The default shell supports builds and lint. The `workers` shell also supports local Worker tests.
 
 ## Develop
 
@@ -49,33 +63,39 @@ scripts/test.sh
 scripts/all.sh
 ```
 
-The scripts enter the Nix shell if the pinned tools are not active.
-The browser check builds the page, checks its generated modules, and checks its actual rendered HTML.
-It uses a temporary local port and stops its server when it exits.
-
-Format beni sources with `beni fmt frontend`.
-Install the local commit hooks with `prek install`.
-CI uses the same scripts.
+The scripts select the required Nix shell when necessary.
+`test.sh` checks fixed-seed rules, the local Worker with several clients, and desktop and mobile renders.
+The Worker checks every client message with the shared schema.
+Clients cannot set a snake's position, length, score, or simulation tick.
+They send only a join request or an aim point.
+The object accepts at most one aim point per player per tick.
 
 | Path | Purpose |
 |---|---|
-| `frontend/` | Beni frontend, CSS, page shell, and licensed fonts |
+| `game/` | Pure rules, seeded random state, and shared schemas |
+| `server/` | Worker routing, the authoritative object, sockets, and checkpoints |
+| `frontend/` | Lobby, separate preview, live SVG view, CSS, and local fonts |
+| `tests/` | Beni rule and transcript checks, plus driver steps |
+| `scripts/` | Build, lint, local server, and checks |
 | `nix/` | Zorg and beni compiler derivations |
-| `scripts/` | Local development and checks |
-| `build/page/` | Generated browser assets |
-| `docs/` | Capability evidence and deployment design |
+| `build/` | Generated pages, Worker modules, and test programs |
+| `.scratch/` | Local caches, transcripts, logs, and screenshots |
+
+Format the source with `beni fmt game server frontend tests`.
+Install commit hooks with `prek install`.
+CI runs the same scripts.
 
 ## Package
 
 ```sh
-nix build .#beni
 nix build .#frontend
+nix build .#worker
 ```
 
-`nix build` also builds the frontend package.
-The output contains the page, generated modules, CSS, and local fonts.
-The font licenses remain beside the fonts.
+`nix build` also builds the static frontend package.
+The output keeps each font license beside its font.
+There is no release command. Do not deploy this task.
 
-There is no release or deployment command yet.
-See the [deployment design](docs/deployment.md) for Cloudflare Workers, Durable Objects, and the celld assessment.
-See the [capability check](docs/capabilities.md) for the remaining API issues.
+The local Wrangler configuration uses the pinned runtime's compatibility date.
+A production account, hostname, and current compatibility date still need a separate deployment task.
+See the [deployment notes](docs/deployment.md) and [capability evidence](docs/capabilities.md).

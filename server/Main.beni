@@ -1,0 +1,220 @@
+import Duration
+import Log
+import Protocol
+import Rules as Game
+import Schema
+import WebSocket exposing (Socket)
+import Worker exposing (Context, Request, Response)
+import Worker.Object as Object
+import Worker.Storage as Storage
+
+
+type alias State =
+    game : Game.State
+    aimed : List String
+    healthy : Bool
+
+
+checkpointKey : String
+checkpointKey = "arena:v1"
+
+
+main : Worker.Program
+main = Worker.program { fetch = route, objects = [ arena ] }
+
+
+-- Keep this call in one place for the owner's cf-workers-q9 answer.
+arena : Worker.Definition
+arena =
+    Object.define "Arena" Schema.string restore
+        { emptyHandlers
+            | request = join
+            , message = input
+            , closed = left
+            , failed = failed
+            , tick = tick
+            , ticked = step
+        }
+
+
+emptyHandlers : Object.Handlers State String
+emptyHandlers = Object.none
+
+
+-- This selector is pure. It never waits or reaches the host.
+tick : State → Maybe Duration.Duration
+tick state =
+    if state.healthy && List.any state.game.players .alive then
+        Just (Duration.millis Game.tickMillis)
+    else
+        Nothing
+
+
+restore : Object.Context String → State
+restore ctx =
+    case Storage.get ctx (Protocol.Checkpoint.schema ⊤) checkpointKey of
+        Ok saved →
+            game = Maybe.withDefault (Maybe.map saved Protocol.restore) (Game.init 42)
+            connected = List.map (Object.sockets ctx) WebSocket.id
+            stale = List.filter game.players λp → not (List.member connected p.id)
+            cleaned = List.foldl stale game λp current → Game.leave current p.id
+            { game = cleaned, aimed = [], healthy = True }
+        Err _ →
+            Log.error "The arena checkpoint does not match its schema."
+            closeAll ctx
+            { game = Game.init 42, aimed = [], healthy = False }
+
+
+join : Object.Context String, State, Request → State × Response
+join ctx state request =
+    if not state.healthy then
+        ( state, Worker.text 503 "The arena storage is not available." )
+    else if not (sameOrigin request) then
+        ( state, Worker.text 403 "Use the page from this server." )
+    else if List.length (Object.sockets ctx) ≥ Game.maxPlayers then
+        ( state, Worker.text 503 "The arena is full." )
+    else
+        case Object.accept ctx request [] of
+            Ok ( socket, response ) →
+                send socket (Protocol.Packet.Welcome { id = WebSocket.id socket })
+                ( state, response )
+            Err Object.NotAnUpgrade →
+                ( state, Worker.text 426 "Open a WebSocket to join the arena." )
+            Err _ →
+                ( state, Worker.text 503 "The arena cannot accept this connection." )
+
+
+sameOrigin : Request → Bool
+sameOrigin request =
+    case ( Worker.header request "origin", String.split (Worker.url request) "/" ) of
+        ( Nothing, _ ) →
+            True
+        ( Just origin, [ scheme, "", host, …_ ] ) →
+            origin == scheme ++ "//" ++ host
+        _ →
+            False
+
+
+input : Object.Context String, State, Socket, String → State
+input ctx state socket text =
+    if not state.healthy then
+        state
+    else
+        case Protocol.readInput text of
+            Err reason →
+                send socket (Protocol.Packet.Rejected { message = reason })
+                _ = WebSocket.close socket { code = 1008, reason = "Invalid input." }
+                state
+            Ok command →
+                id = WebSocket.id socket
+                case command of
+                    Protocol.Input.Join data →
+                        next =
+                            save ctx { state | game = Game.join state.game id data.name data.color }
+                        alive =
+                            next.healthy
+                                && Maybe.withDefault
+                                    (Maybe.map (Game.player next.game id) .alive)
+                                    False
+                        send socket (Protocol.Packet.Joined { alive = alive })
+                        next
+                    Protocol.Input.Aim point →
+                        if List.member state.aimed id then
+                            state
+                        else
+                            { state
+                                | game = Game.aim state.game id point
+                                , aimed = List.push state.aimed id
+                            }
+
+
+step : Object.Context String, State → State
+step ctx state =
+    next = save ctx { state | game = Game.step state.game, aimed = [] }
+    if next.healthy then
+        List.foldl (Object.sockets ctx) ⊤ λsocket _ →
+            send
+                socket
+                (Protocol.Packet.State
+                    { snapshot = Protocol.snapshot next.game (WebSocket.id socket) }
+                )
+    next
+
+
+save : Object.Context String, State → State
+save ctx state =
+    case
+        Storage.put
+            ctx
+            (Protocol.Checkpoint.schema ⊤)
+            checkpointKey
+            (Protocol.checkpoint state.game)
+    of
+        Ok ⊤ →
+            state
+        Err _ →
+            Log.error "The arena checkpoint write failed. The arena stopped."
+            closeAll ctx
+            { state | healthy = False }
+
+
+left : Object.Context String, State, Socket, WebSocket.Close → State
+left ctx state socket _ =
+    if state.healthy then
+        save ctx { state | game = Game.leave state.game (WebSocket.id socket) }
+    else
+        state
+
+
+failed : Object.Context String, State, Socket, String → State
+failed ctx state socket _ = left ctx state socket { code = 1006, reason = "" }
+
+
+closeAll : Object.Context String → ⊤
+closeAll ctx = List.foldl (Object.sockets ctx) ⊤ λsocket _ →
+    _ =
+        WebSocket.close socket
+            { code = 1011, reason = "The arena storage failed. Reconnect later." }
+    ⊤
+
+
+send : Socket, Protocol.Packet.Type → ⊤
+send socket packet =
+    case Protocol.Packet.print packet of
+        Ok text →
+            _ = WebSocket.write socket text
+            ⊤
+        Err _ →
+            Log.error "The server packet does not match its schema."
+            _ = WebSocket.close socket { code = 1011, reason = "The server packet failed." }
+            ⊤
+
+
+route : Context, Request → Response
+route ctx request =
+    case String.split (Worker.path request) "/" of
+        [ "", "arena", name, …rest ] →
+            if String.isEmpty name || String.length name > 32 then
+                Worker.text 400 "Use an arena name of 1 to 32 characters."
+            else
+                case Worker.objects (Worker.env ctx) "ARENAS" Schema.string of
+                    Just arenas →
+                        case Worker.forward (Worker.byName arenas name) request of
+                            Ok response →
+                                response
+                            Err _ →
+                                Worker.text 503 "The arena is not available. Reconnect later."
+                    Nothing →
+                        Worker.text 503 "The ARENAS binding is absent."
+        [ "", "health" ] →
+            Worker.text 200 "Snake Arena is ready."
+        _ →
+            case Worker.service (Worker.env ctx) "ASSETS" of
+                Just assets →
+                    case Worker.callService assets request of
+                        Ok response →
+                            response
+                        Err _ →
+                            Worker.text 503 "The page is not available."
+                Nothing →
+                    Worker.text 404 "No such page."

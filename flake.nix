@@ -49,7 +49,7 @@
                 ./beni.json
                 ./frontend
                 ./game
-                ./scripts/build.sh
+                ./scripts/build-page.sh
               ];
             };
             nativeBuildInputs = [ beni ];
@@ -58,7 +58,7 @@
               runHook preBuild
               export SNAKE_TOOLCHAIN=1
               export XDG_CACHE_HOME="$PWD/.scratch/cache"
-              bash scripts/build.sh
+              bash scripts/build-page.sh
               runHook postBuild
             '';
             installPhase = ''
@@ -68,9 +68,40 @@
               runHook postInstall
             '';
           };
+          worker = pkgs.stdenvNoCC.mkDerivation {
+            pname = "snake-arena-worker";
+            version = "0.0.0";
+            src = pkgs.lib.fileset.toSource {
+              root = ./.;
+              fileset = pkgs.lib.fileset.unions [
+                ./server
+                ./game
+                ./scripts/build-worker.sh
+              ];
+            };
+            nativeBuildInputs = [ beni ];
+            dontConfigure = true;
+            buildPhase = ''
+              runHook preBuild
+              export SNAKE_TOOLCHAIN=1
+              bash scripts/build-worker.sh
+              runHook postBuild
+            '';
+            installPhase = ''
+              runHook preInstall
+              mkdir -p "$out"
+              cp -r build/worker/. "$out/"
+              runHook postInstall
+            '';
+          };
         in
         {
-          inherit zorg beni frontend;
+          inherit
+            zorg
+            beni
+            frontend
+            worker
+            ;
           default = frontend;
         }
       );
@@ -120,6 +151,7 @@
 
       checks = forAllSystems (system: {
         frontend = self.packages.${system}.frontend;
+        worker = self.packages.${system}.worker;
       });
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };

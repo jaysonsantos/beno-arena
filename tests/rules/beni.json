@@ -1,0 +1,8 @@
+{
+  "name": "snake-arena-rules-tests",
+  "build": {
+    "platform": "node",
+    "paths": ["../../game", "."],
+    "out": "../../build/rules-tests"
+  }
+}

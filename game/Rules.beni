@@ -1,0 +1,237 @@
+--! Pure game rules. One step always advances the simulation by 50 milliseconds.
+
+import Int32
+import Random.Pcg as Pcg
+
+
+pub type alias Point =
+    x : Float
+    y : Float
+
+
+pub type alias Player =
+    id : String
+    name : String
+    color : Int
+    body : List Point
+    angle : Float
+    target : Point
+    length : Int
+    alive : Bool
+
+
+pub type alias State =
+    players : List Player
+    food : List Point
+    seed : Pcg.Seed
+    tick : Int
+
+
+pub width : Float
+width = 1600
+
+
+pub height : Float
+height = 1000
+
+
+pub tickMillis : Int
+tickMillis = 50
+
+
+pub maxPlayers : Int
+maxPlayers = 16
+
+
+pub maxLength : Int
+maxLength = 180
+
+
+pub initialLength : Int
+initialLength = 12
+
+
+pub foodCount : Int
+foodCount = 100
+
+
+pub maxFood : Int
+maxFood = foodCount + maxPlayers * maxLength
+
+
+pub speed : Float
+speed = 6
+
+
+pub radius : Float
+radius = 10
+
+
+turnLimit : Float
+turnLimit = 0.22
+
+
+foodRadius : Float
+foodRadius = 14
+
+
+spawnMargin : Float
+spawnMargin = 110
+
+
+pub init : Int → State
+init seed = refill { players = [], food = [], seed = Pcg.initialSeed seed, tick = 0 }
+
+
+pub seedParts : Pcg.Seed → Int × Int
+seedParts (Pcg.Seed value increment) = ( Int32.toInt value, Int32.toInt increment )
+
+
+pub restoreSeed : Int, Int → Pcg.Seed
+restoreSeed value increment = Pcg.Seed (Int32.fromInt value) (Int32.fromInt increment)
+
+
+pub head : Player → Point
+head snake = Maybe.withDefault (List.head snake.body) { x = width / 2, y = height / 2 }
+
+
+pub distanceSquared : Point, Point → Float
+distanceSquared a b = (a.x - b.x) ^ 2 + (a.y - b.y) ^ 2
+
+
+pub player : State, String → Maybe Player
+player state id = List.head (List.filter state.players λp → p.id == id)
+
+
+pub join : State, String, String, Int → State
+join state id name color =
+    others = List.filter state.players λp → p.id ≠ id
+    existingAlive = Maybe.withDefault (Maybe.map (player state id) .alive) False
+    if existingAlive || List.length others ≥ maxPlayers then
+        state
+    else
+        ( spot, seed ) = spawn state.players state.seed 40
+        case spot of
+            Nothing →
+                { state | seed = seed }
+            Just position →
+                body = List.initialize initialLength λindex →
+                    { x = position.x - toFloat index * speed, y = position.y }
+                joined =
+                    { id = id
+                    , name = String.left (String.trim name) 18
+                    , color = clamp color 0 3
+                    , body = body
+                    , angle = 0
+                    , target = { x = position.x + spawnMargin, y = position.y }
+                    , length = initialLength
+                    , alive = True
+                    }
+                { state | players = List.push others joined, seed = seed }
+
+
+spawn : List Player, Pcg.Seed, Int → Maybe Point × Pcg.Seed
+spawn players seed attempts =
+    if attempts ≤ 0 then
+        ( Nothing, seed )
+    else
+        ( position, next ) = randomPoint seed spawnMargin
+        body = List.initialize initialLength λindex →
+            { x = position.x - toFloat index * speed, y = position.y }
+        blocked = List.any players λp →
+            p.alive
+                && List.any p.body λpart →
+                    List.any body λcandidate → distanceSquared part candidate < spawnMargin ^ 2
+        if blocked then spawn players next (attempts - 1) else ( Just position, next )
+
+
+pub aim : State, String, Point → State
+aim state id point =
+    target = { x = clamp point.x 0 width, y = clamp point.y 0 height }
+    { state
+        | players = List.map state.players λp → if p.id == id then { p | target = target } else p
+    }
+
+
+pub leave : State, String → State
+leave state id =
+    departing = List.filter state.players λp → p.id == id && p.alive
+    { state
+        | players = List.filter state.players λp → p.id ≠ id
+        , food = List.take [ …List.concatMap departing .body, …state.food ] maxFood
+    }
+
+
+pub step : State → State
+step state =
+    moved = List.map state.players move
+    resolved = List.map moved λp → if p.alive && collided p moved then { p | alive = False } else p
+    dead = List.filter resolved λp →
+        not p.alive && Maybe.withDefault (Maybe.map (player state p.id) .alive) False
+    survivors = List.filter resolved .alive
+    -- Resolve food in player order. Each pellet belongs to at most one player.
+    ( fed, remaining ) = List.foldl survivors ( [], state.food ) eat
+    allPlayers = List.map resolved λp →
+        Maybe.withDefault (List.head (List.filter fed λf → f.id == p.id)) p
+    drops = List.concatMap dead .body
+    refill
+        { state
+            | players = allPlayers
+            , food = List.take [ …drops, …remaining ] maxFood
+            , tick = state.tick + 1
+        }
+
+
+move : Player → Player
+move p =
+    if not p.alive then
+        p
+    else
+        position = head p
+        desired = atan2 (p.target.y - position.y) (p.target.x - position.x)
+        difference = atan2 (sin (desired - p.angle)) (cos (desired - p.angle))
+        angle = p.angle + clamp difference (-turnLimit) turnLimit
+        next = { x = position.x + speed * cos angle, y = position.y + speed * sin angle }
+        { p | angle = angle, body = List.take [ next, …p.body ] p.length }
+
+
+collided : Player, List Player → Bool
+collided p players =
+    position = head p
+    position.x < radius
+        || position.x > width - radius
+        || position.y < radius
+        || position.y > height - radius
+        || List.any players λother →
+            other.id ≠ p.id
+                && other.alive
+                && List.any other.body λpart → distanceSquared position part < (2 * radius) ^ 2
+
+
+eat : Player, List Player × List Point → List Player × List Point
+eat p ( done, food ) =
+    remaining = List.filter food λpellet → distanceSquared (head p) pellet > foodRadius ^ 2
+    growth = List.length food - List.length remaining
+    ( List.push done { p | length = min maxLength (p.length + growth) }, remaining )
+
+
+refill : State → State
+refill state =
+    if List.length state.food ≥ foodCount then
+        state
+    else
+        ( point, seed ) = randomPoint state.seed (radius * 2)
+        refill { state | food = List.push state.food point, seed = seed }
+
+
+randomPoint : Pcg.Seed, Float → Point × Pcg.Seed
+randomPoint seed margin =
+    ( ( x, y ), next ) =
+        Pcg.step
+            (Pcg.pair (Pcg.float margin (width - margin)) (Pcg.float margin (height - margin)))
+            seed
+    ( { x = x, y = y }, next )
+
+
+pub scores : State → List Player
+scores state = List.take (List.reverse (List.sortBy (List.filter state.players .alive) .length)) 5

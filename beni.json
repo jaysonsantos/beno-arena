@@ -2,7 +2,7 @@
   "name": "snake-arena",
   "build": {
     "platform": "browser-tea",
-    "paths": ["frontend"],
+    "paths": ["frontend", "game"],
     "out": "build/page"
   },
   "html": "frontend/index.html"

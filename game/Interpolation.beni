@@ -1,0 +1,40 @@
+--! Interpolate matching server segments without a network or clock.
+
+import Dict
+import Protocol
+
+
+pub between : Maybe Protocol.Snapshot.Type, Protocol.Snapshot.Type, Float → Protocol.Snapshot.Type
+between previous latest blend =
+    amount = clamp blend 0 1
+    case previous of
+        Nothing →
+            latest
+        Just before →
+            snakes = List.map latest.snakes λsnake →
+                case List.head (List.filter before.snakes λold → old.id == snake.id) of
+                    Nothing →
+                        snake
+                    Just old →
+                        oldParts = Dict.fromList (List.map old.body λpart → ( part.index, part ))
+                        { snake
+                            | body =
+                                List.map snake.body λpart →
+                                    case Dict.get oldParts part.index of
+                                        Just oldPart →
+                                            { part
+                                                | x = mix oldPart.x part.x amount
+                                                , y = mix oldPart.y part.y amount
+                                            }
+                                        Nothing →
+                                            part
+                        }
+            { latest
+                | snakes = snakes
+                , cameraX = mix before.cameraX latest.cameraX amount
+                , cameraY = mix before.cameraY latest.cameraY amount
+            }
+
+
+mix : Float, Float, Float → Float
+mix before after amount = before + (after - before) * amount

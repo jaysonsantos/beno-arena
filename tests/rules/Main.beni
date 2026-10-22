@@ -1,0 +1,353 @@
+import Interpolation
+import Node
+import Protocol
+import Rules as Game
+
+
+main : Node.Program
+main =
+    initial = Game.init 42
+    repeat = Game.init 42
+    test1 = check "the same seed produces the same food" (initial.food == repeat.food)
+    test2 =
+        check
+            "food starts inside the arena"
+            (List.length initial.food == Game.foodCount
+                && List.all initial.food λp →
+                    p.x > 0 && p.x < Game.width && p.y > 0 && p.y < Game.height
+            )
+    joined = Game.join initial "one" "Alice" 2
+    test3 =
+        check
+            "join creates one live snake"
+            (List.length joined.players == 1 && (snake joined "one").alive)
+    test4 =
+        check
+            "a live player cannot join twice"
+            ((Game.join joined "one" "again" 0).players == joined.players)
+    test5 =
+        check
+            "a tick advances at a fixed speed"
+            (near
+                (Game.distanceSquared
+                    (Game.head (snake joined "one"))
+                    (Game.head (snake (Game.step joined) "one"))
+                )
+                (Game.speed ^ 2)
+            )
+    test6 = check "a tick advances its sequence" ((Game.step joined).tick == joined.tick + 1)
+    fixture = { joined | players = [ example "one" 100 100 ], food = [ { x = 106, y = 100 } ] }
+    eaten = Game.step fixture
+    test7 = check "food increases the length" ((snake eaten "one").length == Game.initialLength + 1)
+    test8 =
+        check
+            "the eaten pellet leaves the arena"
+            (not (List.member eaten.food { x = 106, y = 100 }))
+    blocker = example "two" 300 300
+    collision =
+        { fixture
+            | players =
+                [ example "one" 100 100
+                , { blocker | body = [ { x = 300, y = 300 }, { x = 106, y = 100 } ] }
+                ]
+            , food = initial.food
+        }
+    killed = Game.step collision
+    test9 =
+        check
+            "a head that touches a body dies"
+            (not (snake killed "one").alive && (snake killed "two").alive)
+    test10 = check "the dead body becomes food" (List.member killed.food { x = 106, y = 100 })
+    test11 = check "a dead snake cannot eat" ((snake killed "one").length == Game.initialLength)
+    revived = Game.join killed "one" "Alice" 1
+    test12 =
+        check
+            "a dead player can join again"
+            ((snake revived "one").alive && List.length revived.players == 2)
+    test13 = check "the score list excludes dead snakes" (List.all (Game.scores killed) .alive)
+    faceToFace =
+        { fixture
+            | players =
+                [ example "one" 100 100
+                , { blocker
+                    | body = [ { x = 122, y = 100 } ]
+                    , angle = pi
+                    , target = { x = 0, y = 100 }
+                  }
+                ]
+        }
+    mutual = Game.step faceToFace
+    test14 = check "head collisions kill both players" (List.all mutual.players λp → not p.alive)
+    wall = { fixture | players = [ example "one" (Game.width - Game.radius) 100 ] }
+    test15 = check "a snake dies at the arena wall" (not (snake (Game.step wall) "one").alive)
+    left = Game.leave joined "one"
+    test16 =
+        check
+            "disconnect removes the player and drops food"
+            (List.isEmpty left.players
+                && List.length left.food == List.length joined.food + Game.initialLength
+            )
+    aimed = Game.aim joined "one" { x = -20, y = 9000 }
+    test17 =
+        check
+            "input stays inside arena bounds"
+            ((snake aimed "one").target == { x = 0, y = Game.height })
+    capped =
+        { fixture
+            | players =
+                [ { blocker | id = "one", body = [ { x = 100, y = 100 } ], length = Game.maxLength }
+                ]
+            , food = [ { x = 106, y = 100 } ]
+        }
+    test18 =
+        check "growth has a fixed limit" ((snake (Game.step capped) "one").length == Game.maxLength)
+    parts = Game.seedParts joined.seed
+    test19 =
+        check
+            "a checkpoint restores the random sequence"
+            (Game.seedParts (Game.restoreSeed parts.0 parts.1) == parts)
+    full =
+        { initial
+            | players =
+                List.initialize Game.maxPlayers λi →
+                    example (String.fromInt i) (100 + toFloat i * 40) 100
+        }
+    test20 =
+        check
+            "the arena has a player limit"
+            (List.length (Game.join full "extra" "extra" 0).players == Game.maxPlayers)
+    test21 =
+        check
+            "fixed inputs produce the same next state"
+            ((Game.step collision).players == (Game.step collision).players
+                && (Game.step collision).food == (Game.step collision).food
+            )
+    malformed =
+        case Protocol.readInput "{broken" of
+            Err _ →
+                True
+            Ok _ →
+                False
+    unknown =
+        case Protocol.readInput "{\"kind\":\"aim\",\"x\":10,\"y\":10,\"length\":1000}" of
+            Err _ →
+                True
+            Ok _ →
+                False
+    outside =
+        case Protocol.readInput "{\"kind\":\"aim\",\"x\":-1,\"y\":10}" of
+            Err _ →
+                True
+            Ok _ →
+                False
+    enormous =
+        case Protocol.readInput (String.repeat "x" 513) of
+            Err _ →
+                True
+            Ok _ →
+                False
+    accepted =
+        case Protocol.readInput "{\"kind\":\"join\",\"name\":\"Alice\",\"color\":2}" of
+            Ok (Protocol.Input.Join data) →
+                data.name == "Alice" && data.color == 2
+            _ →
+                False
+    saved = Protocol.restore (Protocol.checkpoint joined)
+    before = Game.step joined
+    after = Game.step saved
+    checkpointPass =
+        before.players == after.players
+            && before.food == after.food
+            && Game.seedParts before.seed == Game.seedParts after.seed
+    visible =
+        Protocol.snapshot
+            { initial | food = [ { x = 20, y = 20 }, { x = 800, y = 500 } ] }
+            "missing"
+    visibilityPass = List.length visible.food == 1 && List.member visible.food { x = 800, y = 500 }
+    test22 = check "malformed JSON is refused" malformed
+    test23 = check "unknown input fields are refused" unknown
+    test24 = check "out-of-bounds input is refused" outside
+    test25 = check "oversized input is refused" enormous
+    test26 = check "a valid join parses" accepted
+    test27 = check "a restored checkpoint advances identically" checkpointPass
+    test28 = check "snapshots exclude food outside the camera" visibilityPass
+    backwards = Game.aim fixture "one" { x = 0, y = 100 }
+    turned = snake (Game.step backwards) "one"
+    sharedFood =
+        { fixture
+            | players = [ example "one" 100 100, example "two" 126 100 ]
+            , food = [ { x = 119, y = 100 } ]
+        }
+    sharedResult = Game.step sharedFood
+    once = List.length (List.filter (Game.step killed).food λpoint → point == { x = 106, y = 100 })
+    crowd = Game.join joined "two" "Bob" 0
+    separation = List.all crowd.players λa →
+        List.all crowd.players λb →
+            a.id == b.id
+                || List.all a.body λpart →
+                    List.all b.body λother → Game.distanceSquared part other ≥ (2 * Game.radius) ^ 2
+    boundary = example "one" (Game.width - Game.radius) 100
+    saturated =
+        { fixture | players = [ boundary ], food = List.repeat { x = 400, y = 500 } Game.maxFood }
+    saturatedResult = Game.step saturated
+    baseFrame = Protocol.snapshot fixture "one"
+    oldFrame =
+        { baseFrame
+            | cameraX = 0
+            , snakes =
+                [ { id = "one"
+                  , name = "one"
+                  , color = 0
+                  , length = 12
+                  , alive = True
+                  , body = [ { index = 0, x = 0, y = 100 }, { index = 1, x = 100, y = 100 } ]
+                  }
+                ]
+        }
+    newFrame =
+        { baseFrame
+            | cameraX = 100
+            , snakes =
+                [ { id = "one"
+                  , name = "one"
+                  , color = 0
+                  , length = 12
+                  , alive = True
+                  , body = [ { index = 1, x = 106, y = 100 } ]
+                  }
+                ]
+        }
+    middle = Interpolation.between (Just oldFrame) newFrame 0.5
+    middleX =
+        Maybe.withDefault
+            (Maybe.andThen (List.head middle.snakes) λvalue → Maybe.map (List.head value.body) .x)
+            (-1)
+    test29 =
+        check "a reverse aim keeps the turn gradual" (turned.angle > 0 && turned.angle < pi / 2)
+    test30 =
+        check
+            "one pellet grows only one snake"
+            (List.sum (List.map sharedResult.players .length) == 2 * Game.initialLength + 1)
+    test31 = check "a dead body drops food only once" (once == 1)
+    test32 =
+        check
+            "a dead snake does not move"
+            (Game.head (snake killed "one") == Game.head (snake (Game.step killed) "one"))
+    test33 =
+        check
+            "a new snake spawns clear of live bodies"
+            (List.length crowd.players == 2 && separation)
+    test34 =
+        check "food stays bounded after a death" (List.length saturatedResult.food == Game.maxFood)
+    test35 =
+        check
+            "fresh corpse food replaces old food at the limit"
+            (List.member saturatedResult.food { x = Game.width - Game.radius + Game.speed, y = 100 }
+            )
+    test36 = check "empty names fail" (refused "{\"kind\":\"join\",\"name\":\" \",\"color\":0}")
+    test37 =
+        check "unknown colors fail" (refused "{\"kind\":\"join\",\"name\":\"Alice\",\"color\":4}")
+    test38 = check "non-finite coordinates fail" (refused "{\"kind\":\"aim\",\"x\":1e999,\"y\":10}")
+    test39 = check "unknown input variants fail" (refused "{\"kind\":\"score\",\"value\":999}")
+    test40 = check "interpolation uses stable body indexes" (near middleX 103)
+    test41 = check "the camera interpolates between snapshots" (near middle.cameraX 50)
+    test42 =
+        check
+            "a first snapshot needs no previous state"
+            (Interpolation.between Nothing newFrame 0 == newFrame)
+    results =
+        [ test1
+        , test2
+        , test3
+        , test4
+        , test5
+        , test6
+        , test7
+        , test8
+        , test9
+        , test10
+        , test11
+        , test12
+        , test13
+        , test14
+        , test15
+        , test16
+        , test17
+        , test18
+        , test19
+        , test20
+        , test21
+        , test22
+        , test23
+        , test24
+        , test25
+        , test26
+        , test27
+        , test28
+        , test29
+        , test30
+        , test31
+        , test32
+        , test33
+        , test34
+        , test35
+        , test36
+        , test37
+        , test38
+        , test39
+        , test40
+        , test41
+        , test42
+        ]
+    output =
+        String.join
+            (List.map results λ( name, passed ) → (if passed then "PASS: " else "FAIL: ") ++ name)
+            "\n"
+    Node.exitWith output (if List.all results λresult → result.1 then 0 else 1)
+
+
+example : String, Float, Float → Game.Player
+example id x y =
+    { id = id
+    , name = id
+    , color = 0
+    , body = [ { x = x, y = y } ]
+    , angle = 0
+    , target = { x = Game.width, y = y }
+    , length = Game.initialLength
+    , alive = True
+    }
+
+
+snake : Game.State, String → Game.Player
+snake state id =
+    case Game.player state id of
+        Just value →
+            value
+        Nothing →
+            { id = ""
+            , name = ""
+            , color = 0
+            , body = []
+            , angle = 0
+            , target = { x = 0, y = 0 }
+            , length = 0
+            , alive = False
+            }
+
+
+check : String, Bool → String × Bool
+check name passed = ( name, passed )
+
+
+near : Float, Float → Bool
+near a b = abs (a - b) < 0.0001
+
+
+refused : String → Bool
+refused text =
+    case Protocol.readInput text of
+        Err _ →
+            True
+        Ok _ →
+            False

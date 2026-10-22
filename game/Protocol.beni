@@ -1,0 +1,190 @@
+--! One shared schema contract for the object, the page, and stored checkpoints.
+
+import Rules as Game
+import Schema
+
+
+pub schema Input tagged "kind" of
+    Join as "join"
+        name : String
+        color : Int
+    Aim as "aim"
+        x : FiniteFloat
+        y : FiniteFloat
+
+
+pub schema Point =
+    x : FiniteFloat
+    y : FiniteFloat
+
+
+pub schema Segment =
+    index : Int
+    x : FiniteFloat
+    y : FiniteFloat
+
+
+pub schema Snake =
+    id : String
+    name : String
+    color : Int
+    body : List Segment
+    length : Int
+    alive : Bool
+
+
+pub schema Score =
+    id : String
+    name : String
+    length : Int
+
+
+pub schema Snapshot =
+    tick : Int
+    you : String
+    alive : Bool
+    cameraX : FiniteFloat
+    cameraY : FiniteFloat
+    snakes : List Snake
+    food : List Point
+    scores : List Score
+
+
+pub schema Packet tagged "kind" of
+    Welcome as "welcome"
+        id : String
+    Joined as "joined"
+        alive : Bool
+    State as "state"
+        snapshot : Snapshot
+    Rejected as "error"
+        message : String
+
+
+pub schema StoredPlayer =
+    id : String
+    name : String
+    color : Int
+    body : List Point
+    angle : FiniteFloat
+    target : Point
+    length : Int
+    alive : Bool
+
+
+pub schema Checkpoint =
+    players : List StoredPlayer
+    food : List Point
+    randomState : Int
+    randomIncrement : Int
+    tick : Int
+
+
+pub maxInputChars : Int
+maxInputChars = 512
+
+
+pub viewWidth : Float
+viewWidth = 1000
+
+
+pub viewHeight : Float
+viewHeight = 680
+
+
+pub readInput : String → Result String Input.Type
+readInput text =
+    if String.length text > maxInputChars then
+        Err "The message is too long."
+    else
+        options =
+            { errors = Schema.FirstError
+            , unknownKeys = Schema.Reject
+            , maxDepth = 12
+            , reportInput = False
+            }
+        case Input.parseWith options text of
+            Err _ →
+                Err "The message does not match the input schema."
+            Ok command →
+                case command of
+                    Input.Join data →
+                        if
+                            String.isEmpty (String.trim data.name)
+                                || String.length data.name > 18
+                                || data.color < 0
+                                || data.color > 3
+                        then
+                            Err "Use a name of 1 to 18 characters and a valid color."
+                        else
+                            Ok command
+                    Input.Aim point →
+                        if
+                            point.x < 0
+                                || point.x > Game.width
+                                || point.y < 0
+                                || point.y > Game.height
+                        then
+                            Err "The input point is outside the arena."
+                        else
+                            Ok command
+
+
+pub snapshot : Game.State, String → Snapshot.Type
+snapshot state id =
+    mine = Game.player state id
+    center =
+        Maybe.withDefault (Maybe.map mine Game.head) { x = Game.width / 2, y = Game.height / 2 }
+    cameraX = clamp (center.x - viewWidth / 2) 0 (Game.width - viewWidth)
+    cameraY = clamp (center.y - viewHeight / 2) 0 (Game.height - viewHeight)
+    visible =
+        λpoint →
+            point.x ≥ cameraX - Game.radius * 2
+                && point.x ≤ cameraX + viewWidth + Game.radius * 2
+                && point.y ≥ cameraY - Game.radius * 2
+                && point.y ≤ cameraY + viewHeight + Game.radius * 2
+    snakes = List.filterMap state.players λp →
+        body =
+            List.filter
+                (List.indexedMap p.body λindex point → { index = index, x = point.x, y = point.y })
+                visible
+        if not p.alive || List.isEmpty body then
+            Nothing
+        else
+            Just
+                { id = p.id
+                , name = p.name
+                , color = p.color
+                , body = body
+                , length = p.length
+                , alive = p.alive
+                }
+    { tick = state.tick
+    , you = id
+    , alive = Maybe.withDefault (Maybe.map mine .alive) False
+    , cameraX = cameraX
+    , cameraY = cameraY
+    , snakes = snakes
+    , food = List.filter state.food visible
+    , scores = List.map (Game.scores state) λp → { id = p.id, name = p.name, length = p.length }
+    }
+
+
+pub checkpoint : Game.State → Checkpoint.Type
+checkpoint state =
+    ( value, increment ) = Game.seedParts state.seed
+    { players = state.players
+    , food = state.food
+    , randomState = value
+    , randomIncrement = increment
+    , tick = state.tick
+    }
+
+
+pub restore : Checkpoint.Type → Game.State
+restore saved =
+    { players = saved.players
+    , food = saved.food
+    , seed = Game.restoreSeed saved.randomState saved.randomIncrement
+    , tick = saved.tick
+    }

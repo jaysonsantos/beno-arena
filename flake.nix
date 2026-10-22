@@ -48,6 +48,7 @@
               fileset = pkgs.lib.fileset.unions [
                 ./beni.json
                 ./frontend
+                ./game
                 ./scripts/build.sh
               ];
             };

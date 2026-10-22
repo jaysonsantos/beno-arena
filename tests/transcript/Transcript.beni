@@ -1,0 +1,99 @@
+import Protocol
+import Schema
+
+
+pub welcomes : String, String → Int
+welcomes transcript client =
+    List.length
+        (List.filter (packets transcript client) λpacket →
+            case packet of
+                Protocol.Packet.Welcome _ →
+                    True
+                _ →
+                    False
+        )
+
+
+pub joins : String, String → Int
+joins transcript client =
+    List.length
+        (List.filter (packets transcript client) λpacket →
+            case packet of
+                Protocol.Packet.Joined _ →
+                    True
+                _ →
+                    False
+        )
+
+
+pub closeReply : String, String, Int → Bool
+closeReply transcript client code =
+    close = "> (socket ${client}) close"
+    receive = "< (socket ${client}) "
+    ( _, answer ) =
+        List.foldl (String.lines transcript) ( False, Nothing ) λline ( started, reply ) →
+            if String.startsWith line close then
+                ( True, Nothing )
+            else if started && reply == Nothing && String.startsWith line receive then
+                ( started, Just (String.dropLeft line (String.length receive)) )
+            else
+                ( started, reply )
+    Maybe.withDefault (Maybe.map answer λline → String.startsWith line "close ${code} ") False
+
+
+pub aimsNewest : List Protocol.Snapshot.Type → Bool
+aimsNewest frames =
+    heads = List.filterMap frames λframe →
+        Maybe.andThen (List.head (List.filter frame.snakes λsnake → snake.id == frame.you)) λsnake →
+            Maybe.map (List.head (List.filter snake.body λpart → part.index == 0)) .y
+    case heads of
+        [ before, after ] →
+            after > before
+        _ →
+            False
+
+
+pub packets : String, String → List Protocol.Packet.Type
+packets transcript client =
+    prefix = "< (socket ${client}) "
+    List.filterMap (String.lines transcript) λline →
+        if not (String.startsWith line prefix) then
+            Nothing
+        else
+            case Schema.parse Schema.string (String.dropLeft line (String.length prefix)) of
+                Err _ →
+                    Nothing
+                Ok text →
+                    case Protocol.Packet.parse text of
+                        Ok packet →
+                            Just packet
+                        Err _ →
+                            Nothing
+
+
+pub snapshots : String, String → List Protocol.Snapshot.Type
+snapshots transcript client = List.filterMap (packets transcript client) λpacket →
+    case packet of
+        Protocol.Packet.State data →
+            Just data.snapshot
+        _ →
+            Nothing
+
+
+pub rejected : Protocol.Packet.Type → Bool
+rejected packet =
+    case packet of
+        Protocol.Packet.Rejected _ →
+            True
+        _ →
+            False
+
+
+pub visibleFood : Protocol.Snapshot.Type → Bool
+visibleFood snapshot =
+    not (List.isEmpty snapshot.food)
+        && List.all snapshot.food λpoint →
+            point.x ≥ snapshot.cameraX - 20
+                && point.x ≤ snapshot.cameraX + Protocol.viewWidth + 20
+                && point.y ≥ snapshot.cameraY - 20
+                && point.y ≤ snapshot.cameraY + Protocol.viewHeight + 20

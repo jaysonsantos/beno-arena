@@ -2,8 +2,9 @@
 
 import Io
 import Node
+import ProbeTests
 import Protocol
-import Schema
+import Transcript as Probe
 
 
 main : Node.Program
@@ -12,9 +13,9 @@ main = Io.run λ⊤ →
         Err _ →
             Node.exitWith "FAIL: the Worker transcript is absent." 1
         Ok transcript →
-            alice = snapshots transcript "alice"
-            bob = snapshots transcript "bob"
-            carol = snapshots transcript "carol"
+            alice = Probe.snapshots transcript "alice"
+            bob = Probe.snapshots transcript "bob"
+            carol = Probe.snapshots transcript "carol"
             firstAlice = List.head alice
             firstBob = List.head bob
             idsDiffer =
@@ -40,18 +41,35 @@ main = Io.run λ⊤ →
                 , ( "the arena shares its scores", names == [ "Alice", "Bob" ] )
                 , ( "another arena has separate scores", otherNames == [ "Carol" ] )
                 , ( "another arena starts at tick one", List.map carol .tick == [ 1 ] )
-                , ( "snapshots contain visible food", List.all all visibleFood )
-                , ( "invalid input returns an error", List.any (packets transcript "bob") rejected )
+                , ( "snapshots contain visible food", List.all all Probe.visibleFood )
+                , ( "invalid input returns an error"
+                  , List.any (Probe.packets transcript "bob") Probe.rejected
+                  )
                 , ( "cross-site upgrades fail"
                   , String.contains transcript "(socket foreign) < 403"
                   )
                 , ( "an idle object has no tick", String.contains transcript "< 409" )
-                , ( "invalid input closes with 1008", String.contains transcript "close 1008" )
+                , ( "invalid input closes with 1008"
+                  , String.contains transcript "< (socket bob) close 1008 "
+                  )
+                , ( "each client receives one welcome"
+                  , List.all [ "alice", "bob", "carol", "idle" ] λclient →
+                      Probe.welcomes transcript client == 1
+                  )
+                , ( "each player receives one joined reply"
+                  , List.all [ "alice", "bob", "carol" ] λclient →
+                      Probe.joins transcript client == 1
+                  )
+                , ( "the idle client receives no joined reply", Probe.joins transcript "idle" == 0 )
+                , ( "the newest aim of a tick wins", Probe.aimsNewest alice )
                 , ( "client close handshakes complete"
-                  , not (String.contains transcript "(nothing arrived)")
+                  , Probe.closeReply transcript "alice" 1000
+                      && Probe.closeReply transcript "carol" 4001
+                      && Probe.closeReply transcript "idle" 1000
                   )
                 , ( "no request times out", not (String.contains transcript "no response in") )
                 , ( "the runtime has no errors", not (String.contains transcript "| err:") )
+                , …ProbeTests.checks
                 ]
             output =
                 String.join
@@ -60,49 +78,3 @@ main = Io.run λ⊤ →
                     )
                     "\n"
             Node.exitWith output (if List.all checks λresult → result.1 then 0 else 1)
-
-
-packets : String, String → List Protocol.Packet.Type
-packets transcript client =
-    prefix = "< (socket ${client}) "
-    List.filterMap (String.lines transcript) λline →
-        if not (String.startsWith line prefix) then
-            Nothing
-        else
-            case Schema.parse Schema.string (String.dropLeft line (String.length prefix)) of
-                Err _ →
-                    Nothing
-                Ok text →
-                    case Protocol.Packet.parse text of
-                        Ok packet →
-                            Just packet
-                        Err _ →
-                            Nothing
-
-
-snapshots : String, String → List Protocol.Snapshot.Type
-snapshots transcript client = List.filterMap (packets transcript client) λpacket →
-    case packet of
-        Protocol.Packet.State data →
-            Just data.snapshot
-        _ →
-            Nothing
-
-
-rejected : Protocol.Packet.Type → Bool
-rejected packet =
-    case packet of
-        Protocol.Packet.Rejected _ →
-            True
-        _ →
-            False
-
-
-visibleFood : Protocol.Snapshot.Type → Bool
-visibleFood snapshot =
-    not (List.isEmpty snapshot.food)
-        && List.all snapshot.food λpoint →
-            point.x ≥ snapshot.cameraX - 20
-                && point.x ≤ snapshot.cameraX + Protocol.viewWidth + 20
-                && point.y ≥ snapshot.cameraY - 20
-                && point.y ≤ snapshot.cameraY + Protocol.viewHeight + 20

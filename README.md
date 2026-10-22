@@ -76,7 +76,7 @@ It accepts at most one join request per player per tick.
 The shared Color schema represents each color by name, such as `{"name":"moss"}`.
 
 The local checks currently fail on client close replies in the pinned beni platform.
-Both Worker build modes pass the other 14 transcript checks.
+Both Worker build modes pass the other 18 runtime assertions and all six transcript-parser checks.
 See the [check results](docs/checks.md) and [beni issue #724](https://github.com/canassa/beni/issues/724#issuecomment-6352841942).
 
 | Path | Purpose |

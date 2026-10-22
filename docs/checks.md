@@ -7,10 +7,13 @@ No account operation or deployment ran.
 
 ## Rules and protocol
 
-`scripts/test-rules.sh` passed all 46 assertions.
+`scripts/test-rules.sh` passed all 72 assertions.
 The checks use fixed ticks and seeded PCG food.
 They cover movement, turns, growth, collisions, death food, safe spawn, rejoin, scores, limits, schemas, checkpoints, camera bounds, and interpolation indexes.
 They also round-trip every Color through join input, snapshots, and checkpoints. Numeric colors fail.
+The review regressions force movement direction, the exact turn limit, score order and length, seed use, safe spawn, and new-position collisions.
+They also check body clipping, dead snakes, name length, valid oversized JSON, restored ticks, join limits, aim coalescing, recovery, and checkpoint cadence.
+All twelve requested rule and protocol mutants compiled and failed these assertions. Four session mutants also compiled and failed.
 
 ## Worker and sockets
 
@@ -18,19 +21,23 @@ They also round-trip every Color through join input, snapshots, and checkpoints.
 All listeners use `127.0.0.1`. The driver disposes each runtime after the check.
 The test source and transcript assertions use beni.
 
-Both development and release builds pass 14 of 15 transcript checks:
+Both development and release builds pass 18 of 19 runtime assertions. Six transcript-parser checks also pass:
 
 - Two clients receive matching ticks, separate identities, visible food, and shared scores.
 - A third client receives separate state and scores from another arena.
 - The server rejects cross-site upgrades and extra input fields.
 - Invalid input returns an error and a close frame with code `1008`.
 - An idle object has no tick. Requests complete without runtime errors.
+- Each client receives its welcome and expected joined reply. Repeated joins produce no extra reply in one tick.
+- Two aim points before one tick make the snake turn toward the newest point.
+- Parser checks detect missing or duplicate replies. They isolate each close receive and require the peer code.
 
 The client close check fails in both modes.
 Three clients send a normal close but receive no close reply within the driver's five-second limit.
-The object's closed handler calls the public `WebSocket.close` API.
+The game removes the departing player. [Beni PR #819](https://github.com/canassa/beni/pull/819) adds the platform close reply.
+The current compiler pin still lacks that fix. The close check requires code `1000` for Alice and `4001` for Carol.
 The failed assertion stays in the suite. The suite returns a failure result.
-The final `scripts/all.sh` run passed lint, all 46 rule checks, and the browser output checks.
+The final `scripts/all.sh` run passed lint, all 72 rule checks, and the browser output checks.
 It returned `1` for the close defect after both Worker modes ran.
 The suite continues to browser checks after a failed Worker assertion.
 

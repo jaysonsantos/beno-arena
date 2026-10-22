@@ -4,6 +4,8 @@
 {"receive":"alice"}
 {"send":"alice","text":"{\"kind\":\"join\",\"name\":\"Alice\",\"color\":{\"name\":\"moss\"}}"}
 {"receive":"alice"}
+{"send":"alice","text":"{\"kind\":\"join\",\"name\":\"Again\",\"color\":{\"name\":\"moss\"}}"}
+{"send":"alice","text":"{\"kind\":\"join\",\"name\":\"Again\",\"color\":{\"name\":\"moss\"}}"}
 {"socket":"bob","path":"/arena/test/ws"}
 {"receive":"bob"}
 {"send":"bob","text":"{\"kind\":\"join\",\"name\":\"Bob\",\"color\":{\"name\":\"sky\"}}"}
@@ -11,7 +13,8 @@
 {"method":"POST","path":"/arena/test/__beni/tick"}
 {"receive":"alice"}
 {"receive":"bob"}
-{"send":"alice","text":"{\"kind\":\"aim\",\"x\":400,\"y\":400}"}
+{"send":"alice","text":"{\"kind\":\"aim\",\"x\":1600,\"y\":0}"}
+{"send":"alice","text":"{\"kind\":\"aim\",\"x\":0,\"y\":1000}"}
 {"method":"POST","path":"/arena/test/__beni/tick"}
 {"receive":"alice"}
 {"receive":"bob"}
@@ -28,7 +31,7 @@
 {"receive":"bob"}
 {"close":"alice","code":1000,"reason":"done"}
 {"receive":"alice"}
-{"close":"carol","code":1000,"reason":"done"}
+{"close":"carol","code":4001,"reason":"done"}
 {"receive":"carol"}
 # A socket without a joined player never starts the tick.
 {"socket":"idle","path":"/arena/idle/ws"}

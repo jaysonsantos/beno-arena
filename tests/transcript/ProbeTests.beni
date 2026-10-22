@@ -1,0 +1,44 @@
+import Protocol
+import Schema
+import Transcript as Probe
+
+
+pub checks : List (String × Bool)
+checks =
+    welcome = wire (Protocol.Packet.Welcome { id = "one" })
+    joined = wire (Protocol.Packet.Joined { alive = True })
+    close = "> (socket alice) close 4001 \"done\"\n< (socket alice) close 4001 \"done\""
+    earlierMissing = "< (socket alice) (nothing arrived)\n" ++ close
+    missingClose =
+        "< (socket alice) close 4001 \"done\"\n> (socket alice) close 4001 \"done\"\n< (socket alice) (nothing arrived)"
+    [ ( "the welcome counter detects a missing welcome"
+      , Probe.welcomes welcome "alice" == 1 && Probe.welcomes joined "alice" == 0
+      )
+    , ( "the joined counter detects a missing joined reply"
+      , Probe.joins joined "alice" == 1 && Probe.joins welcome "alice" == 0
+      )
+    , ( "reply counters detect duplicates"
+      , Probe.welcomes (welcome ++ "\n" ++ welcome) "alice" == 2
+          && Probe.joins (joined ++ "\n" ++ joined) "alice" == 2
+      )
+    , ( "the close check ignores earlier missing packets"
+      , Probe.closeReply earlierMissing "alice" 4001
+      )
+    , ( "the close check requires the receive after close"
+      , not (Probe.closeReply missingClose "alice" 4001)
+      )
+    , ( "the close check requires the peer code", not (Probe.closeReply close "alice" 1000) )
+    ]
+
+
+wire : Protocol.Packet.Type → String
+wire packet =
+    case Protocol.Packet.print packet of
+        Ok text →
+            case Schema.print Schema.string text of
+                Ok quoted →
+                    "< (socket alice) " ++ quoted
+                Err _ →
+                    ""
+        Err _ →
+            ""

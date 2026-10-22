@@ -53,7 +53,8 @@ The game does not require RPC or an outgoing WebSocket from an object.
 The Color schema change precedes the first deployment. No stored production data needs conversion.
 The current checkpoint key is `arena:v2`. Change its version whenever the stored schema shape changes.
 New games use `Clock.now` as the PCG seed. Restored games keep their saved seed.
-The platform owns peer close replies under beni PR #819. The game handler removes the departed player.
+Beni PR #819 makes the platform answer peer closes before the game handler runs.
+The current pin lacks that fix. The game handler removes the departed player and keeps the failed close check.
 
 ## Owner answers before deployment
 

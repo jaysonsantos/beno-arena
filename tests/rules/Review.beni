@@ -1,0 +1,195 @@
+--! Regression checks for the review's surviving mutations and session policy.
+
+import Dict
+import Palette exposing (Color)
+import Protocol
+import Rules as Game
+import Session
+
+
+pub checks : List (String × Bool)
+checks =
+    base = Game.init 42
+    origin = sample "one" 100 100
+    field = { base | players = [ origin ] }
+    directed = Game.step (Game.aim field "one" { x = 200, y = 0 })
+    heading = first directed
+    scoreboard =
+        { base
+            | players =
+                List.map [ 20, 80, 40, 60, 10, 90, 30 ] λlength →
+                    { origin | id = String.fromInt length, length = length }
+        }
+    probe = Game.join base "probe" "Probe" Color.Moss
+    candidate = first probe
+    blocked = { base | players = [ { candidate | id = "blocker" } ] }
+    spawned = Game.join blocked "new" "New" Color.Sky
+    newcomer = Maybe.withDefault (Game.player spawned "new") origin
+    moving =
+        { base
+            | players =
+                [ origin
+                , { sample "two" 129 100 | angle = pi, target = { x = 0, y = 100 } }
+                ]
+        }
+    clipped =
+        Protocol.snapshot
+            { base
+                | players =
+                    [ { origin
+                        | body =
+                            [ { x = 100, y = 100 }, { x = 800, y = 500 }, { x = 1400, y = 900 } ]
+                      }
+                    , sample "outside" 100 100
+                    , { sample "dead" 800 500 | alive = False }
+                    ]
+            }
+            "missing"
+    visible = Maybe.withDefault (List.head clipped.snakes) emptySnake
+    padded = "{\"kind\":\"aim\",\"x\":1,\"y\":1}" ++ String.repeat " " 512
+    validPadded =
+        case Protocol.Input.parse padded of
+            Ok _ →
+                True
+            Err _ →
+                False
+    savedGame = { field | tick = 97 }
+    ready = Session.saved (Session.init field)
+    ( joined, accepted ) = Session.join ready "two" "Two" Color.Sky
+    ( duplicate, ignored ) = Session.join joined "two" "Two" Color.Sky
+    afterTick = Session.step (Session.saved joined)
+    ( alreadyAlive, acknowledged ) = Session.join afterTick "two" "Two" Color.Sky
+    firstAim = Session.aim ready "one" { x = 1600, y = 0 }
+    lastAim = Session.aim firstAim "one" { x = 0, y = 1000 }
+    applied = Session.step lastAim
+    nineteen = advance ready 19
+    twenty = Session.step nineteen
+    checkpoint = Protocol.checkpoint savedGame
+    ( restored, resetGood ) = Session.restore 123 (Ok (Just checkpoint)) [ "one" ]
+    ( stale, _ ) = Session.restore 123 (Ok (Just checkpoint)) []
+    malformed =
+        case Protocol.Checkpoint.parse "{}" of
+            Err issues →
+                Err issues
+            Ok value →
+                Ok (Just value)
+    ( recovered, resetBad ) = Session.restore 123 malformed []
+    ( freshA, _ ) = Session.restore 123 (Ok Nothing) []
+    ( freshB, _ ) = Session.restore 124 (Ok Nothing) []
+    [ ( "R05 movement follows an upper-right aim"
+      , (Game.head heading).x > 100 && (Game.head heading).y < 100
+      )
+    , ( "R06 the turn limit is 0.22 radians", near heading.angle (-0.22) )
+    , ( "R12 scores sort longest first"
+      , List.map (Game.scores scoreboard) .length == [ 90, 80, 60, 40, 30 ]
+      )
+    , ( "R14 scores contain at most five snakes", List.length (Game.scores scoreboard) == 5 )
+    , ( "R20 different seeds produce different food", base.food ≠ (Game.init 43).food )
+    , ( "R21 spawn retries a blocked first candidate"
+      , newcomer.id == "new"
+          && newcomer.alive
+          && List.all newcomer.body λpart →
+              List.all candidate.body λother →
+                  Game.distanceSquared part other ≥ (2 * Game.radius) ^ 2
+      )
+    , ( "R22 collisions use both snakes' new positions"
+      , List.all (Game.step moving).players λp → not p.alive
+      )
+    , ( "P01 the camera clips bodies and keeps segment indexes"
+      , List.map clipped.snakes .id == [ "one" ] && List.map visible.body .index == [ 1 ]
+      )
+    , ( "P08 the snapshot excludes a visible dead snake"
+      , not (List.any clipped.snakes λp → p.id == "dead")
+      )
+    , ( "P03 a nineteen-character name fails", nameRefused 19 && not (nameRefused 18) )
+    , ( "P05 valid JSON over 512 characters fails", validPadded && refused padded )
+    , ( "P07 restore keeps a nonzero tick", (Protocol.restore checkpoint).tick == 97 )
+    , ( "a socket joins at most once per tick"
+      , accepted == Just True && ignored == Nothing && duplicate == joined
+      )
+    , ( "a repeated live join does not change the stored game"
+      , acknowledged == Just True && not (Session.changed afterTick alreadyAlive)
+      )
+    , ( "a new join changes the stored game", Session.changed ready joined )
+    , ( "the newest aim replaces the earlier aim"
+      , Dict.size lastAim.pending == 1 && (first applied.game).target == { x = 0, y = 1000 }
+      )
+    , ( "aim waits for the next tick", (first lastAim.game).target == origin.target )
+    , ( "a tick clears pending inputs"
+      , Dict.isEmpty applied.pending && List.isEmpty applied.joined
+      )
+    , ( "a checkpoint waits for twenty ticks"
+      , not (Session.checkpointDue nineteen) && Session.checkpointDue twenty
+      )
+    , ( "a saved checkpoint resets its interval"
+      , not (Session.checkpointDue (Session.saved twenty))
+      )
+    , ( "a leave changes the stored game", Session.changed joined (Session.leave joined "two") )
+    , ( "an absent player's leave does not change the stored game"
+      , not (Session.changed ready (Session.leave ready "absent"))
+      )
+    , ( "restore keeps a valid checkpoint"
+      , not resetGood && not restored.dirty && restored.game.tick == 97
+      )
+    , ( "restore removes stale players and requests a write"
+      , List.isEmpty stale.game.players && stale.dirty
+      )
+    , ( "a bad checkpoint starts a healthy game and requests a write"
+      , resetBad
+          && recovered.healthy
+          && recovered.dirty
+          && recovered.game.tick == 0
+          && List.length recovered.game.food == Game.foodCount
+      )
+    , ( "a new arena uses the supplied clock seed", freshA.game.food ≠ freshB.game.food )
+    ]
+
+
+sample : String, Float, Float → Game.Player
+sample id x y =
+    { id = id
+    , name = id
+    , color = Color.Moss
+    , body = [ { x = x, y = y } ]
+    , angle = 0
+    , target = { x = 1500, y = y }
+    , length = Game.initialLength
+    , alive = True
+    }
+
+
+first : Game.State → Game.Player
+first state = Maybe.withDefault (List.head state.players) (sample "absent" 0 0)
+
+
+emptySnake : Protocol.Snake.Type
+emptySnake = { id = "", name = "", color = Color.Moss, body = [], length = 0, alive = False }
+
+
+advance : Session.State, Int → Session.State
+advance state count = if count ≤ 0 then state else advance (Session.step state) (count - 1)
+
+
+near : Float, Float → Bool
+near a b = abs (a - b) < 0.000001
+
+
+nameRefused : Int → Bool
+nameRefused count =
+    case
+        Protocol.Input.print
+            (Protocol.Input.Join { name = String.repeat "a" count, color = Color.Moss })
+    of
+        Ok text →
+            refused text
+        Err _ →
+            False
+
+
+refused : String → Bool
+refused text =
+    case Protocol.readInput text of
+        Err _ →
+            True
+        Ok _ →
+            False

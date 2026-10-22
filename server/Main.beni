@@ -1,8 +1,10 @@
+import Clock
 import Duration
 import Log
 import Protocol
 import Rules as Game
 import Schema
+import Session
 import WebSocket exposing (Socket)
 import Worker exposing (Context, Request, Response)
 import Worker.Object as Object
@@ -10,13 +12,11 @@ import Worker.Storage as Storage
 
 
 type alias State =
-    game : Game.State
-    aimed : List String
-    healthy : Bool
+    Session.State
 
 
 checkpointKey : String
-checkpointKey = "arena:v1"
+checkpointKey = "arena:v2"
 
 
 main : Worker.Program
@@ -52,17 +52,12 @@ tick state =
 
 restore : Object.Context String → State
 restore ctx =
-    case Storage.get ctx (Protocol.Checkpoint.schema ⊤) checkpointKey of
-        Ok saved →
-            game = Maybe.withDefault (Maybe.map saved Protocol.restore) (Game.init 42)
-            connected = List.map (Object.sockets ctx) WebSocket.id
-            stale = List.filter game.players λp → not (List.member connected p.id)
-            cleaned = List.foldl stale game λp current → Game.leave current p.id
-            { game = cleaned, aimed = [], healthy = True }
-        Err _ →
-            Log.error "The arena checkpoint does not match its schema."
-            closeAll ctx
-            { game = Game.init 42, aimed = [], healthy = False }
+    stored = Storage.get ctx (Protocol.Checkpoint.schema ⊤) checkpointKey
+    connected = List.map (Object.sockets ctx) WebSocket.id
+    ( state, reset ) = Session.restore (Clock.now ⊤) stored connected
+    if reset then
+        Log.warn "The arena checkpoint did not parse. A new game replaces it."
+    if state.dirty then save ctx state else state
 
 
 join : Object.Context String, State, Request → State × Response
@@ -109,28 +104,23 @@ input ctx state socket text =
                 id = WebSocket.id socket
                 case command of
                     Protocol.Input.Join data →
-                        next =
-                            save ctx { state | game = Game.join state.game id data.name data.color }
-                        alive =
-                            next.healthy
-                                && Maybe.withDefault
-                                    (Maybe.map (Game.player next.game id) .alive)
-                                    False
-                        send socket (Protocol.Packet.Joined { alive = alive })
+                        ( joined, reply ) = Session.join state id data.name data.color
+                        next = if Session.changed state joined then save ctx joined else joined
+                        case reply of
+                            Just alive →
+                                send
+                                    socket
+                                    (Protocol.Packet.Joined { alive = alive && next.healthy })
+                            Nothing →
+                                ⊤
                         next
                     Protocol.Input.Aim point →
-                        if List.member state.aimed id then
-                            state
-                        else
-                            { state
-                                | game = Game.aim state.game id point
-                                , aimed = List.push state.aimed id
-                            }
+                        Session.aim state id point
 
 
 step : Object.Context String, State → State
 step ctx state =
-    next = save ctx { state | game = Game.step state.game, aimed = [] }
+    next = Session.step state
     if next.healthy then
         List.foldl (Object.sockets ctx) ⊤ λsocket _ →
             send
@@ -138,7 +128,7 @@ step ctx state =
                 (Protocol.Packet.State
                     { snapshot = Protocol.snapshot next.game (WebSocket.id socket) }
                 )
-    next
+    if Session.checkpointDue next then save ctx next else next
 
 
 save : Object.Context String, State → State
@@ -151,7 +141,7 @@ save ctx state =
             (Protocol.checkpoint state.game)
     of
         Ok ⊤ →
-            state
+            Session.saved state
         Err _ →
             Log.error "The arena checkpoint write failed. The arena stopped."
             closeAll ctx
@@ -160,15 +150,18 @@ save ctx state =
 
 left : Object.Context String, State, Socket, WebSocket.Close → State
 left ctx state socket _ =
-    _ = WebSocket.close socket { code = 1000, reason = "Peer disconnected." }
+    -- The platform owns the peer close reply under beni #819.
     if state.healthy then
-        save ctx { state | game = Game.leave state.game (WebSocket.id socket) }
+        next = Session.leave state (WebSocket.id socket)
+        if Session.changed state next then save ctx next else next
     else
         state
 
 
 failed : Object.Context String, State, Socket, String → State
-failed ctx state socket _ = left ctx state socket { code = 1006, reason = "" }
+failed ctx state socket _ =
+    _ = WebSocket.close socket { code = 1011, reason = "The connection failed." }
+    left ctx state socket { code = 1006, reason = "" }
 
 
 closeAll : Object.Context String → ⊤

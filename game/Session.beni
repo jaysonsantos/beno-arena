@@ -1,0 +1,103 @@
+--! Pure input coalescing, join limits, recovery, and checkpoint cadence.
+
+import Dict exposing (Dict)
+import Palette exposing (Color)
+import Protocol
+import Rules as Game
+import Schema
+
+
+pub type alias State =
+    game : Game.State
+    pending : Dict String Game.Point
+    joined : List String
+    checkpointTick : Int
+    dirty : Bool
+    healthy : Bool
+
+
+pub checkpointTicks : Int
+checkpointTicks = 1000 // Game.tickMillis
+
+
+pub init : Game.State → State
+init game =
+    { game = game
+    , pending = Dict.empty
+    , joined = []
+    , checkpointTick = game.tick
+    , dirty = True
+    , healthy = True
+    }
+
+
+pub restore :
+      Int
+    , Result (List Schema.Issue) (Maybe Protocol.Checkpoint.Type)
+    , List String
+    → State × Bool
+restore seed stored connected =
+    case stored of
+        Ok (Just checkpoint) →
+            game = Protocol.restore checkpoint
+            stale = List.filter game.players λp → not (List.member connected p.id)
+            cleaned = List.foldl stale game λp current → Game.leave current p.id
+            ( { init cleaned | dirty = Protocol.checkpoint cleaned ≠ checkpoint }, False )
+        Ok Nothing →
+            ( init (Game.init seed), False )
+        Err _ →
+            ( init (Game.init seed), True )
+
+
+pub join : State, String, String, Color.Type → State × Maybe Bool
+join state id name color =
+    if List.member state.joined id then
+        ( state, Nothing )
+    else
+        game = Game.join state.game id name color
+        hasChange = Protocol.checkpoint game ≠ Protocol.checkpoint state.game
+        ( { state
+            | game = game
+            , joined = List.push state.joined id
+            , dirty = state.dirty || hasChange
+          }
+        , Just (Maybe.withDefault (Maybe.map (Game.player game id) .alive) False)
+        )
+
+
+pub aim : State, String, Game.Point → State
+aim state id point =
+    if Maybe.withDefault (Maybe.map (Game.player state.game id) .alive) False then
+        { state | pending = Dict.insert state.pending id point }
+    else
+        state
+
+
+pub step : State → State
+step state =
+    aimed = Dict.foldl state.pending state.game λid point game → Game.aim game id point
+    { state | game = Game.step aimed, pending = Dict.empty, joined = [], dirty = True }
+
+
+pub leave : State, String → State
+leave state id =
+    game = Game.leave state.game id
+    hasChange = Protocol.checkpoint game ≠ Protocol.checkpoint state.game
+    { state
+        | game = game
+        , pending = Dict.remove state.pending id
+        , joined = List.filter state.joined λjoinedId → joinedId ≠ id
+        , dirty = state.dirty || hasChange
+    }
+
+
+pub changed : State, State → Bool
+changed before after = Protocol.checkpoint before.game ≠ Protocol.checkpoint after.game
+
+
+pub checkpointDue : State → Bool
+checkpointDue state = state.dirty && state.game.tick - state.checkpointTick ≥ checkpointTicks
+
+
+pub saved : State → State
+saved state = { state | dirty = False, checkpointTick = state.game.tick }

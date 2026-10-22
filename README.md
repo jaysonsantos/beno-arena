@@ -71,7 +71,8 @@ The scripts select the required Nix shell when necessary.
 The Worker checks every client message with the shared schema.
 Clients cannot set a snake's position, length, score, or simulation tick.
 They send only a join request or an aim point.
-The object accepts at most one aim point per player per tick.
+The object retains each player's newest aim point and applies it on the next tick.
+It accepts at most one join request per player per tick.
 The shared Color schema represents each color by name, such as `{"name":"moss"}`.
 
 The local checks currently fail on client close replies in the pinned beni platform.

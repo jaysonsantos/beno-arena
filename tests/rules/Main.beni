@@ -2,6 +2,7 @@ import Interpolation
 import Node
 import Palette exposing (Color)
 import Protocol
+import Review
 import Rules as Game
 
 
@@ -321,6 +322,7 @@ main =
         , test44
         , test45
         , test46
+        , …Review.checks
         ]
     output =
         String.join

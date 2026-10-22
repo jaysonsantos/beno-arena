@@ -27,17 +27,23 @@ Stop the command with Ctrl-C after a check.
 - The page sends only a join request or an aim point.
 - The object checks input size, schema, keys, names, colors, and coordinate bounds.
 - Each socket uses the platform's stable socket ID as its player ID.
-- The object accepts at most 16 sockets and one aim point per player per tick.
+- The object accepts at most 16 sockets and one join request per player per tick.
+- It retains the newest aim point per player and applies it once on the next tick.
 - The pure tick selector returns 50 milliseconds while a live snake exists.
 - The selector returns no timer when the arena is idle.
 - Each tick sends one visible snapshot per socket.
 - Segment indexes keep interpolation stable when the camera clips a body.
-- Each tick, join, and disconnect stores a schema checkpoint.
+- Each tick sends snapshots before any checkpoint write.
+- Every 20 ticks, or one second of simulation, the object stores a schema checkpoint.
+- A join or disconnect stores a checkpoint only when it changes the game state.
+- A crash can lose at most one second of simulation after the last successful checkpoint.
+- The storage output gate still holds outgoing messages on a checkpoint tick until the write becomes durable.
 - The checkpoint keeps the complete game state and both PCG seed words.
 - Inputs, snapshots, and checkpoints use the same Color schema from `game/Palette.beni`.
 - Each color carries a name, such as `{"name":"moss"}`.
 - Restore removes players whose sockets no longer exist.
-- A failed checkpoint read or write stops the arena and closes its sockets.
+- An invalid checkpoint logs a warning, starts a new game, and writes a replacement checkpoint.
+- A failed checkpoint write stops the arena and closes its sockets.
 - A closed connection requires the player to choose **Enter arena** again.
 
 An active game does not request hibernation.
@@ -45,6 +51,9 @@ An idle object has no timer and can restore its state from storage and its survi
 The upstream host-timer probe remains separate from this local game check.
 The game does not require RPC or an outgoing WebSocket from an object.
 The Color schema change precedes the first deployment. No stored production data needs conversion.
+The current checkpoint key is `arena:v2`. Change its version whenever the stored schema shape changes.
+New games use `Clock.now` as the PCG seed. Restored games keep their saved seed.
+The platform owns peer close replies under beni PR #819. The game handler removes the departed player.
 
 ## Owner answers before deployment
 

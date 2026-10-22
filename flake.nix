@@ -1,9 +1,8 @@
 {
   description = "Snake Arena: a beni browser frontend and Zorg-built compiler";
 
-  # Use the exact nixos-26.05 revision in beni's lockfile.
-  # Upgrade the compiler and its tested host tools together.
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/21a67dc470149f337cecafbe965d8d252a390518";
+  # Keep the compiler, Workers tools, and package set on one tested revision.
+  inputs.nixpkgs.follows = "beni-src/nixpkgs";
   inputs.beni-src = {
     url = "github:canassa/beni/ab70761e3546db04a5daeffdc82a554e38d30f19";
   };
@@ -123,6 +122,7 @@
               pkgs.jq
               pkgs.prek
               pkgs.nixfmt
+              pkgs.taplo
               pkgs.shellcheck
               pkgs.typos
               pkgs.gitleaks

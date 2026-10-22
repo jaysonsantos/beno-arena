@@ -5,7 +5,7 @@
 }:
 stdenvNoCC.mkDerivation {
   pname = "beni";
-  version = "0.0.0-ab70761";
+  version = "0.0.0-${src.shortRev}";
   inherit src;
   nativeBuildInputs = [ zorg ];
   dontConfigure = true;

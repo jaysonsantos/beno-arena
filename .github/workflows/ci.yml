@@ -31,6 +31,7 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v21
       - run: nix build .#frontend .#worker --max-jobs 1 --cores 2
   check:
+    name: check
     if: always()
     needs: [lint, test, build]
     runs-on: ubuntu-24.04
@@ -39,4 +40,5 @@ jobs:
         env:
           RESULTS: ${{ toJSON(needs) }}
         run: |
+          echo "$RESULTS"
           echo "$RESULTS" | jq --exit-status 'all(.[].result; . == "success")' > /dev/null

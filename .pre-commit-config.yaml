@@ -18,6 +18,11 @@ repos:
         language: system
         entry: shellcheck
         types: [shell]
+      - id: taplo
+        name: TOML format
+        language: system
+        entry: taplo fmt --check
+        types: [toml]
       - id: json
         name: JSON syntax
         language: system

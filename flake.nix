@@ -5,8 +5,7 @@
   # Upgrade the compiler and its tested host tools together.
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/21a67dc470149f337cecafbe965d8d252a390518";
   inputs.beni-src = {
-    url = "github:canassa/beni/4586e4fb0f329b6bd1cf5884288b694754afd6aa";
-    flake = false;
+    url = "github:canassa/beni/ab70761e3546db04a5daeffdc82a554e38d30f19";
   };
 
   outputs =
@@ -80,7 +79,7 @@
         let
           inherit (tools system) pkgs zorg beni;
         in
-        {
+        rec {
           default = pkgs.mkShell {
             packages = [
               # Compile beni and run its generated modules.
@@ -101,11 +100,19 @@
             ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.chromium ];
             shellHook = ''
               export SNAKE_TOOLCHAIN=1
+              export BENI_SOURCE="${beni-src}"
               export TMPDIR="$PWD/.scratch/tmp"
               export PREK_HOME="$PWD/.scratch/prek"
               export ZORG_GLOBAL_CACHE_DIR="$PWD/.scratch/zorg"
               mkdir -p "$TMPDIR" "$PREK_HOME" "$ZORG_GLOBAL_CACHE_DIR"
             '';
+          };
+          # Reuse the exact Workers shell that this compiler revision supplies.
+          workers = pkgs.mkShell {
+            inputsFrom = [
+              default
+              beni-src.devShells.${system}.workers
+            ];
           };
         }
       );

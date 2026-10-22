@@ -40,10 +40,14 @@ No compiler source changes exist from this task.
 
 - The current platform does not measure a socket's outbound queue.
 - The game bounds sockets, food, body length, input size, and snapshots per tick.
-- `cf-workers-q9` still concerns the compiler's sync check for `tick`.
-- The game selector stays pure and never waits.
+- Cesar answered `cf-workers-q9`: `tick` stays in the handler record.
+- The compiler will reject a tick that waits through `sync_boundary`.
+- The game selector already stays pure and never waits.
+- Normal client close replies fail in both local Worker build modes.
+- The game keeps the failed assertion. The cf-workers worker owns the fixture and fix under #724.
 - The upstream hibernation probe, RPC, and client-disconnect probes do not block local play.
 - A Cloudflare account answer remains necessary for a future deployment.
 - No account operation or remote development command belongs to this task.
 
 See the [deployment notes](deployment.md) for the local configuration and the production prerequisites.
+See the [check results](checks.md) for the failed assertion and [upstream evidence](https://github.com/canassa/beni/issues/724#issuecomment-6352841942).

@@ -50,10 +50,10 @@ The game does not require RPC or an outgoing WebSocket from an object.
 3. Check the account's Durable Object limits and costs.
 4. Check a deployment bundle and reconnect behavior in that target environment.
 
-`cf-workers-q9` concerns the compiler's tick check.
-The current API keeps `tick` in the handler record.
-The game uses a pure selector and one `Object.define` call.
-A separate sync parameter needs one definition-site change if the owner selects it.
+Cesar answered `cf-workers-q9`: `tick` stays in the handler record.
+The compiler will reject a tick that waits through `sync_boundary`.
+The game already uses a pure selector that never waits.
+The `Object.define` call needs no change.
 
 This repository contains no deployment or release script.
 Do not publish it during this task.

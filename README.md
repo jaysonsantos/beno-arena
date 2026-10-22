@@ -9,6 +9,8 @@ A dead snake becomes food. Choose **Enter arena** to join again.
 The score list shows the five longest live snakes.
 The initial arena remains a separate illustration until you connect.
 
+![Snake Arena lobby with a separate arena preview and player controls.](docs/screenshot.png)
+
 All game source and test assertions use beni.
 The compiler produces JavaScript. Do not edit that output.
 The tests reuse beni's unchanged Miniflare driver.
@@ -61,6 +63,7 @@ scripts/build.sh
 scripts/lint.sh
 scripts/test.sh
 scripts/all.sh
+scripts/benchmark.sh
 ```
 
 The scripts select the required Nix shell when necessary.
@@ -69,6 +72,10 @@ The Worker checks every client message with the shared schema.
 Clients cannot set a snake's position, length, score, or simulation tick.
 They send only a join request or an aim point.
 The object accepts at most one aim point per player per tick.
+
+The local checks currently fail on client close replies in the pinned beni platform.
+Both Worker build modes pass the other 14 transcript checks.
+See the [check results](docs/checks.md) and [beni issue #724](https://github.com/canassa/beni/issues/724#issuecomment-6352841942).
 
 | Path | Purpose |
 |---|---|

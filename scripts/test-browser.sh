@@ -5,6 +5,7 @@ if [[ "${SNAKE_TOOLCHAIN:-}" != "1" ]]; then
   exec nix develop --command bash scripts/test-browser.sh "$@"
 fi
 bash scripts/build-page.sh
+(cd tests/render && beni build --release)
 
 # Parse every compiler-generated module with the runtime from the dev shell.
 while IFS= read -r -d '' module; do
@@ -23,7 +24,7 @@ if ! command -v "$browser" >/dev/null; then
   exit 1
 fi
 mkdir -p .scratch/browser
-rm -f .scratch/browser/desktop.png .scratch/browser/mobile.png
+rm -f .scratch/browser/desktop.png .scratch/browser/mobile.png .scratch/browser/live-mobile.png
 python3 -u -m http.server 0 --bind 127.0.0.1 --directory build/page > .scratch/browser/server.log 2>&1 &
 server_pid=$!
 stop_server() {
@@ -73,4 +74,13 @@ env -u LD_LIBRARY_PATH "$browser" --headless --disable-gpu --no-sandbox \
   > .scratch/browser/mobile.html 2>> .scratch/browser/chromium.log
 test -s .scratch/browser/mobile.png
 check_dom .scratch/browser/mobile.html
+env -u LD_LIBRARY_PATH "$browser" --headless --disable-gpu --no-sandbox \
+  --user-data-dir="$PWD/.scratch/browser/profile" --virtual-time-budget=2500 \
+  --window-size=390,900 --screenshot="$PWD/.scratch/browser/live-mobile.png" \
+  --dump-dom "http://127.0.0.1:$port/benchmark/" \
+  > .scratch/browser/live-mobile.html 2>> .scratch/browser/chromium.log
+test -s .scratch/browser/live-mobile.png
+grep -q 'xMidYMid meet' .scratch/browser/live-mobile.html
+grep -q 'Live multiplayer snake arena' .scratch/browser/live-mobile.html
+grep -q 'live-snake' .scratch/browser/live-mobile.html
 echo 'PASS: release build, module syntax, assets, both DOM checks, and nonempty screenshots.'

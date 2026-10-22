@@ -1,0 +1,26 @@
+import Viewport
+
+
+pub checks : List (String × Bool)
+checks =
+    camera = { x = 300, y = 160 }
+    phoneCenter = Viewport.point camera 175 170 350 340
+    phoneTop = Viewport.point camera 175 51 350 340
+    phoneBottom = Viewport.point camera 175 289 350 340
+    desktopCenter = Viewport.point camera 500 250 1000 500
+    letterbox = Viewport.point camera 0 0 350 340
+    [ ( "a phone pointer accounts for vertical letterboxing"
+      , near phoneCenter.x 800
+          && near phoneCenter.y 500
+          && near phoneTop.y 160
+          && near phoneBottom.y 840
+      )
+    , ( "a desktop pointer accounts for horizontal letterboxing"
+      , near desktopCenter.x 800 && near desktopCenter.y 500
+      )
+    , ( "letterbox input clamps to the camera edge", letterbox == camera )
+    ]
+
+
+near : Float, Float → Bool
+near a b = abs (a - b) < 0.000001

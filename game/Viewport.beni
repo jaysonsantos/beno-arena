@@ -1,0 +1,16 @@
+--! Convert SVG pointer coordinates through the centered, uniform meet scale.
+
+import Protocol
+import Rules as Game
+
+
+pub point : Game.Point, Float, Float, Float, Float → Game.Point
+point camera localX localY boxWidth boxHeight =
+    width = max 1 boxWidth
+    height = max 1 boxHeight
+    scale = min (width / Protocol.viewWidth) (height / Protocol.viewHeight)
+    left = (width - Protocol.viewWidth * scale) / 2
+    top = (height - Protocol.viewHeight * scale) / 2
+    { x = camera.x + clamp ((localX - left) / scale) 0 Protocol.viewWidth
+    , y = camera.y + clamp ((localY - top) / scale) 0 Protocol.viewHeight
+    }

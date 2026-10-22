@@ -11,6 +11,7 @@ import Protocol
 import Rules as Game
 import Sub exposing (Sub)
 import Time
+import Viewport
 import WebSocket exposing (Socket)
 
 
@@ -136,18 +137,14 @@ update msg model =
         Pointed x y boxWidth boxHeight →
             case model.current of
                 Just snapshot →
+                    frame = Interpolation.between model.previous snapshot model.blend
                     position =
-                        { x =
-                            clamp
-                                (snapshot.cameraX + x / max 1 boxWidth * Protocol.viewWidth)
-                                0
-                                Game.width
-                        , y =
-                            clamp
-                                (snapshot.cameraY + y / max 1 boxHeight * Protocol.viewHeight)
-                                0
-                                Game.height
-                        }
+                        Viewport.point
+                            { x = frame.cameraX, y = frame.cameraY }
+                            x
+                            y
+                            boxWidth
+                            boxHeight
                     ( { model | pending = Just position }, Cmd.none )
                 Nothing →
                     ( model, Cmd.none )
@@ -249,7 +246,7 @@ view model =
                     id="live-arena"
                     class="arena-art"
                     viewBox={"${frame.cameraX} ${frame.cameraY} ${Protocol.viewWidth} ${Protocol.viewHeight}"}
-                    preserveAspectRatio="none"
+                    preserveAspectRatio="xMidYMid meet"
                     role="img"
                     aria-label="Live multiplayer snake arena"
                     style="touch-action: none"

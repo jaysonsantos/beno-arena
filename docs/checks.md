@@ -7,11 +7,11 @@ No account operation or deployment ran.
 
 ## Rules and protocol
 
-`scripts/test-rules.sh` passed all 72 assertions.
+`scripts/test-rules.sh` passed all 75 assertions.
 The checks use fixed ticks and seeded PCG food.
 They cover movement, turns, growth, collisions, death food, safe spawn, rejoin, scores, limits, schemas, checkpoints, camera bounds, and interpolation indexes.
 They also round-trip every Color through join input, snapshots, and checkpoints. Numeric colors fail.
-The review regressions force movement direction, the exact turn limit, score order and length, seed use, safe spawn, and new-position collisions.
+The review regressions force movement direction, the exact turn limit, score order and length, seed use, safe spawn, and collisions after movement.
 They also check body clipping, dead snakes, name length, valid oversized JSON, restored ticks, join limits, aim coalescing, recovery, and checkpoint cadence.
 All twelve requested rule and protocol mutants compiled and failed these assertions. Four session mutants also compiled and failed.
 
@@ -37,9 +37,10 @@ Three clients send a normal close but receive no close reply within the driver's
 The game removes the departing player. [Beni PR #819](https://github.com/canassa/beni/pull/819) adds the platform close reply.
 The current compiler pin still lacks that fix. The close check requires code `1000` for Alice and `4001` for Carol.
 The failed assertion stays in the suite. The suite returns a failure result.
-The final `scripts/all.sh` run passed lint, all 72 rule checks, and the browser output checks.
-It returned `1` for the close defect after both Worker modes ran.
-The suite continues to browser checks after a failed Worker assertion.
+The review ran lint, rule, Worker, browser, and benchmark commands separately.
+Lint, all 75 rule assertions, and the browser output checks passed.
+The Worker command returned `1` for the close defect after both modes ran.
+The suite entrypoint also continues to browser checks after a failed Worker assertion.
 
 The coordinator assigned the platform fixture and fix to the cf-workers worker under [beni issue #724](https://github.com/canassa/beni/issues/724#issuecomment-6352841942).
 The game uses no host binding or network substitute.
@@ -56,7 +57,11 @@ Chromium produces desktop `1440×1080` and mobile `390×1900` DOM dumps and scre
 The script removes each old PNG before the run. It requires each new PNG to exist and contain data.
 At both widths, the DOM must contain the default name, connection note, preview snake class, and Enter arena button.
 The script does not detect visual overlap or simulate a browser player on the live network.
-I inspected both current screenshots for the separate preview and player controls.
+A third check renders the actual live view at `390×900` with a local stress fixture.
+It requires a fresh nonempty PNG, live snake markup, and `xMidYMid meet` in the SVG.
+Three pure checks cover pointer coordinates through phone and desktop letterboxes.
+I inspected the main mobile view and the live fixture. The fixture keeps the circles round.
+The fixture opens no game socket.
 
 Chromium puts its local singleton socket under the project's temporary directory.
 A deep checkout can exceed the Unix socket path limit. The project root works.
@@ -68,8 +73,8 @@ The shared Linux host uses Chromium's software renderer for this check.
 
 | Measurement | Samples | Median | p95 | Maximum |
 |---|---:|---:|---:|---:|
-| Frame gap | 237 | 19.656 ms | 26.837 ms | 87.817 ms |
-| Callback work | 238 | 5.032 ms | 6.875 ms | 17.146 ms |
+| Frame gap | 225 | 20.443 ms | 26.443 ms | 85.140 ms |
+| Callback work | 226 | 5.303 ms | 7.562 ms | 21.385 ms |
 
 These measurements describe this local trace. They do not measure mobile hardware or production performance.
 The trace and result remain in `.scratch/benchmark/trace.json` and `.scratch/benchmark/result.json`.
@@ -82,7 +87,7 @@ Both packages compile from the pinned beni source with Zorg.
 The frontend package includes the page, local fonts, and font licenses.
 The Worker package contains the generated module and its runtime imports.
 
-`scripts/dev.sh` also started the local Wrangler server without an account.
+The earlier preparation at `54bab5f` also started the local Wrangler server without an account.
 The game listener used `127.0.0.1:4173`.
 The health route, page, and stylesheet returned successful responses.
 The socket route returned `426` without an upgrade request.

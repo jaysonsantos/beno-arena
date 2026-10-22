@@ -4,6 +4,7 @@ import Palette exposing (Color)
 import Protocol
 import Review
 import Rules as Game
+import ViewportChecks
 
 
 main : Node.Program
@@ -323,6 +324,7 @@ main =
         , test45
         , test46
         , …Review.checks
+        , …ViewportChecks.checks
         ]
     output =
         String.join

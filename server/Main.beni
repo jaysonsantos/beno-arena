@@ -23,7 +23,7 @@ main : Worker.Program
 main = Worker.program { fetch = route, objects = [ arena ] }
 
 
--- Keep this call in one place for the owner's cf-workers-q9 answer.
+-- One definition installs all arena handlers. Tick stays a pure selector.
 arena : Worker.Definition
 arena =
     Object.define "Arena" Schema.string restore
@@ -160,6 +160,7 @@ save ctx state =
 
 left : Object.Context String, State, Socket, WebSocket.Close → State
 left ctx state socket _ =
+    _ = WebSocket.close socket { code = 1000, reason = "Peer disconnected." }
     if state.healthy then
         save ctx { state | game = Game.leave state.game (WebSocket.id socket) }
     else

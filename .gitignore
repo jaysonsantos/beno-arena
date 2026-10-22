@@ -8,3 +8,4 @@ result
 .envrc
 .zorg-cache/
 .zig-cache/
+.wrangler/

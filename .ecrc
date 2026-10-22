@@ -8,6 +8,7 @@
     "\\.zig-cache/",
     "\\.scratch/",
     "\\.direnv/",
+    "\\.wrangler/",
     "result"
   ]
 }

@@ -1,5 +1,5 @@
 # Compiler output, caches, and local browser profiles are generated.
-exclude: ^(build/|\.scratch/|\.direnv/|result|frontend/fonts/)
+exclude: ^(build/|\.scratch/|\.direnv/|\.wrangler/|result|frontend/fonts/)
 repos:
   - repo: local
     hooks:

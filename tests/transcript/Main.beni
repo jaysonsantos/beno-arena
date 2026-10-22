@@ -1,0 +1,108 @@
+--! Check the unchanged upstream Miniflare driver's transcript through the shared packet schema.
+
+import Io
+import Node
+import Protocol
+import Schema
+
+
+main : Node.Program
+main = Io.run λ⊤ →
+    case Io.readFile ".scratch/workers/current.log" of
+        Err _ →
+            Node.exitWith "FAIL: the Worker transcript is absent." 1
+        Ok transcript →
+            alice = snapshots transcript "alice"
+            bob = snapshots transcript "bob"
+            carol = snapshots transcript "carol"
+            firstAlice = List.head alice
+            firstBob = List.head bob
+            idsDiffer =
+                case ( firstAlice, firstBob ) of
+                    ( Just a, Just b ) →
+                        a.you ≠ b.you
+                    _ →
+                        False
+            scores = Maybe.withDefault (Maybe.map firstAlice .scores) []
+            names = List.sort (List.map scores .name)
+            otherNames =
+                Maybe.withDefault (Maybe.map (List.head carol) λs → List.map s.scores .name) []
+            all = [ …alice, …bob, …carol ]
+            checks =
+                [ ( "two clients receive both ticks"
+                  , List.length alice == 2 && List.length bob == 2
+                  )
+                , ( "both clients see the same tick sequence"
+                  , List.map alice .tick == [ 1, 2 ] && List.map bob .tick == [ 1, 2 ]
+                  )
+                , ( "the clients have separate identities", idsDiffer )
+                , ( "the players stay alive", List.all all .alive )
+                , ( "the arena shares its scores", names == [ "Alice", "Bob" ] )
+                , ( "another arena has separate scores", otherNames == [ "Carol" ] )
+                , ( "another arena starts at tick one", List.map carol .tick == [ 1 ] )
+                , ( "snapshots contain visible food", List.all all visibleFood )
+                , ( "invalid input returns an error", List.any (packets transcript "bob") rejected )
+                , ( "cross-site upgrades fail"
+                  , String.contains transcript "(socket foreign) < 403"
+                  )
+                , ( "an idle object has no tick", String.contains transcript "< 409" )
+                , ( "invalid input closes with 1008", String.contains transcript "close 1008" )
+                , ( "client close handshakes complete"
+                  , not (String.contains transcript "(nothing arrived)")
+                  )
+                , ( "no request times out", not (String.contains transcript "no response in") )
+                , ( "the runtime has no errors", not (String.contains transcript "| err:") )
+                ]
+            output =
+                String.join
+                    (List.map checks λ( name, passed ) →
+                        (if passed then "PASS: " else "FAIL: ") ++ name
+                    )
+                    "\n"
+            Node.exitWith output (if List.all checks λresult → result.1 then 0 else 1)
+
+
+packets : String, String → List Protocol.Packet.Type
+packets transcript client =
+    prefix = "< (socket ${client}) "
+    List.filterMap (String.lines transcript) λline →
+        if not (String.startsWith line prefix) then
+            Nothing
+        else
+            case Schema.parse Schema.string (String.dropLeft line (String.length prefix)) of
+                Err _ →
+                    Nothing
+                Ok text →
+                    case Protocol.Packet.parse text of
+                        Ok packet →
+                            Just packet
+                        Err _ →
+                            Nothing
+
+
+snapshots : String, String → List Protocol.Snapshot.Type
+snapshots transcript client = List.filterMap (packets transcript client) λpacket →
+    case packet of
+        Protocol.Packet.State data →
+            Just data.snapshot
+        _ →
+            Nothing
+
+
+rejected : Protocol.Packet.Type → Bool
+rejected packet =
+    case packet of
+        Protocol.Packet.Rejected _ →
+            True
+        _ →
+            False
+
+
+visibleFood : Protocol.Snapshot.Type → Bool
+visibleFood snapshot =
+    not (List.isEmpty snapshot.food)
+        && List.all snapshot.food λpoint →
+            point.x ≥ snapshot.cameraX - 20
+                && point.x ≤ snapshot.cameraX + Protocol.viewWidth + 20
+                && point.y ≥ snapshot.cameraY - 20
+                && point.y ≤ snapshot.cameraY + Protocol.viewHeight + 20

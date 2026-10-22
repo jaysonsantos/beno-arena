@@ -3,4 +3,4 @@ useDefault = true
 
 [[allowlists]]
 description = "Generated compiler output and local tool caches contain no application source."
-paths = ['''(^|/)(build|out|\.beni-cache|\.zorg-cache|\.zig-cache|\.scratch|\.direnv|result)(/|$)''']
+paths = ['''(^|/)(build|out|\.beni-cache|\.zorg-cache|\.zig-cache|\.scratch|\.direnv|\.wrangler|result)(/|$)''']

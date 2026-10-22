@@ -29,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: DeterminateSystems/nix-installer-action@v21
-      - run: nix build --max-jobs 1 --cores 2
+      - run: nix build .#frontend .#worker --max-jobs 1 --cores 2
   check:
     if: always()
     needs: [lint, test, build]

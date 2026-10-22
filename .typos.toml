@@ -1,5 +1,5 @@
 [files]
-extend-exclude = ["flake.lock", "build", ".scratch", "frontend/fonts"]
+extend-exclude = ["flake.lock", "build", ".scratch", ".wrangler", "frontend/fonts"]
 
 [default.extend-words]
 beni = "beni"

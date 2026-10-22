@@ -1,0 +1,38 @@
+# Two clients share one arena. A third client uses a separate object.
+{"method":"GET","path":"/health"}
+{"socket":"alice","path":"/arena/test/ws"}
+{"receive":"alice"}
+{"send":"alice","text":"{\"kind\":\"join\",\"name\":\"Alice\",\"color\":0}"}
+{"receive":"alice"}
+{"socket":"bob","path":"/arena/test/ws"}
+{"receive":"bob"}
+{"send":"bob","text":"{\"kind\":\"join\",\"name\":\"Bob\",\"color\":2}"}
+{"receive":"bob"}
+{"method":"POST","path":"/arena/test/__beni/tick"}
+{"receive":"alice"}
+{"receive":"bob"}
+{"send":"alice","text":"{\"kind\":\"aim\",\"x\":400,\"y\":400}"}
+{"method":"POST","path":"/arena/test/__beni/tick"}
+{"receive":"alice"}
+{"receive":"bob"}
+{"socket":"carol","path":"/arena/other/ws"}
+{"receive":"carol"}
+{"send":"carol","text":"{\"kind\":\"join\",\"name\":\"Carol\",\"color\":1}"}
+{"receive":"carol"}
+{"method":"POST","path":"/arena/other/__beni/tick"}
+{"receive":"carol"}
+# Cross-site upgrades and malformed input fail.
+{"socket":"foreign","path":"/arena/test/ws","headers":{"origin":"https://wrong.invalid"}}
+{"send":"bob","text":"{\"kind\":\"aim\",\"x\":1,\"y\":1,\"length\":999}"}
+{"receive":"bob"}
+{"receive":"bob"}
+{"close":"alice","code":1000,"reason":"done"}
+{"receive":"alice"}
+{"close":"carol","code":1000,"reason":"done"}
+{"receive":"carol"}
+# A socket without a joined player never starts the tick.
+{"socket":"idle","path":"/arena/idle/ws"}
+{"receive":"idle"}
+{"method":"POST","path":"/arena/idle/__beni/tick"}
+{"close":"idle","code":1000,"reason":"done"}
+{"receive":"idle"}

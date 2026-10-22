@@ -1,0 +1,8 @@
+{
+  "name": "snake-arena-transcript-tests",
+  "build": {
+    "platform": "node",
+    "paths": ["../../game", "."],
+    "out": "../../build/transcript-tests"
+  }
+}

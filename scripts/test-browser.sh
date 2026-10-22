@@ -23,6 +23,7 @@ if ! command -v "$browser" >/dev/null; then
   exit 1
 fi
 mkdir -p .scratch/browser
+rm -f .scratch/browser/desktop.png .scratch/browser/mobile.png
 python3 -u -m http.server 0 --bind 127.0.0.1 --directory build/page > .scratch/browser/server.log 2>&1 &
 server_pid=$!
 stop_server() {
@@ -57,12 +58,19 @@ env -u LD_LIBRARY_PATH "$browser" --headless --disable-gpu --no-sandbox \
   --window-size=1440,1080 --screenshot="$PWD/.scratch/browser/desktop.png" \
   --dump-dom "http://127.0.0.1:$port" \
   > .scratch/browser/page.html 2> .scratch/browser/chromium.log
-grep -q 'Little trouble' .scratch/browser/page.html
-grep -q 'Choose Enter arena to connect.' .scratch/browser/page.html
-grep -q 'snake-player' .scratch/browser/page.html
-grep -q 'Enter arena' .scratch/browser/page.html
+test -s .scratch/browser/desktop.png
+check_dom() {
+  grep -q 'Little trouble' "$1"
+  grep -q 'Choose Enter arena to connect.' "$1"
+  grep -q 'snake-player' "$1"
+  grep -q 'Enter arena' "$1"
+}
+check_dom .scratch/browser/page.html
 env -u LD_LIBRARY_PATH "$browser" --headless --disable-gpu --no-sandbox \
   --user-data-dir="$PWD/.scratch/browser/profile" --virtual-time-budget=2500 \
   --window-size=390,1900 --screenshot="$PWD/.scratch/browser/mobile.png" \
-  "http://127.0.0.1:$port" > /dev/null 2>> .scratch/browser/chromium.log
-echo 'PASS: release build, module syntax, assets, and browser render.'
+  --dump-dom "http://127.0.0.1:$port" \
+  > .scratch/browser/mobile.html 2>> .scratch/browser/chromium.log
+test -s .scratch/browser/mobile.png
+check_dom .scratch/browser/mobile.html
+echo 'PASS: release build, module syntax, assets, both DOM checks, and nonempty screenshots.'

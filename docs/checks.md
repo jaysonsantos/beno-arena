@@ -7,9 +7,10 @@ No account operation or deployment ran.
 
 ## Rules and protocol
 
-`scripts/test-rules.sh` passed all 42 assertions.
+`scripts/test-rules.sh` passed all 46 assertions.
 The checks use fixed ticks and seeded PCG food.
 They cover movement, turns, growth, collisions, death food, safe spawn, rejoin, scores, limits, schemas, checkpoints, camera bounds, and interpolation indexes.
+They also round-trip every Color through join input, snapshots, and checkpoints. Numeric colors fail.
 
 ## Worker and sockets
 
@@ -29,7 +30,7 @@ The client close check fails in both modes.
 Three clients send a normal close but receive no close reply within the driver's five-second limit.
 The object's closed handler calls the public `WebSocket.close` API.
 The failed assertion stays in the suite. The suite returns a failure result.
-The final `scripts/all.sh` run passed lint, all 42 rule checks, and browser renders.
+The final `scripts/all.sh` run passed lint, all 46 rule checks, and the browser output checks.
 It returned `1` for the close defect after both Worker modes ran.
 The suite continues to browser checks after a failed Worker assertion.
 
@@ -43,10 +44,16 @@ Rerun `scripts/test-worker.sh` after the upstream fix and a compiler pin update.
 
 ## Browser and frame measurements
 
-`scripts/test-browser.sh` passed generated module syntax, asset, and browser render checks.
-Chromium rendered desktop `1440×1080` and mobile `390×1900` views.
-The screenshots show the separate preview and the player controls without overlap.
-These checks do not simulate a browser player on the live network.
+`scripts/test-browser.sh` checks generated module syntax and page assets.
+Chromium produces desktop `1440×1080` and mobile `390×1900` DOM dumps and screenshots.
+The script removes each old PNG before the run. It requires each new PNG to exist and contain data.
+At both widths, the DOM must contain the default name, connection note, preview snake class, and Enter arena button.
+The script does not detect visual overlap or simulate a browser player on the live network.
+I inspected both current screenshots for the separate preview and player controls.
+
+Chromium puts its local singleton socket under the project's temporary directory.
+A deep checkout can exceed the Unix socket path limit. The project root works.
+Keep test files inside the project, as the task requires.
 
 `scripts/benchmark.sh` renders the actual live view with 16 snakes, 2,880 body samples, and 600 food circles.
 The fixture advances interpolation through animation frames. It uses no network.
@@ -54,8 +61,8 @@ The shared Linux host uses Chromium's software renderer for this check.
 
 | Measurement | Samples | Median | p95 | Maximum |
 |---|---:|---:|---:|---:|
-| Frame gap | 221 | 20.379 ms | 28.340 ms | 37.472 ms |
-| Callback work | 222 | 5.246 ms | 8.156 ms | 19.018 ms |
+| Frame gap | 237 | 19.656 ms | 26.837 ms | 87.817 ms |
+| Callback work | 238 | 5.032 ms | 6.875 ms | 17.146 ms |
 
 These measurements describe this local trace. They do not measure mobile hardware or production performance.
 The trace and result remain in `.scratch/benchmark/trace.json` and `.scratch/benchmark/result.json`.

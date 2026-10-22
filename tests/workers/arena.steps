@@ -2,11 +2,11 @@
 {"method":"GET","path":"/health"}
 {"socket":"alice","path":"/arena/test/ws"}
 {"receive":"alice"}
-{"send":"alice","text":"{\"kind\":\"join\",\"name\":\"Alice\",\"color\":0}"}
+{"send":"alice","text":"{\"kind\":\"join\",\"name\":\"Alice\",\"color\":{\"name\":\"moss\"}}"}
 {"receive":"alice"}
 {"socket":"bob","path":"/arena/test/ws"}
 {"receive":"bob"}
-{"send":"bob","text":"{\"kind\":\"join\",\"name\":\"Bob\",\"color\":2}"}
+{"send":"bob","text":"{\"kind\":\"join\",\"name\":\"Bob\",\"color\":{\"name\":\"sky\"}}"}
 {"receive":"bob"}
 {"method":"POST","path":"/arena/test/__beni/tick"}
 {"receive":"alice"}
@@ -17,7 +17,7 @@
 {"receive":"bob"}
 {"socket":"carol","path":"/arena/other/ws"}
 {"receive":"carol"}
-{"send":"carol","text":"{\"kind\":\"join\",\"name\":\"Carol\",\"color\":1}"}
+{"send":"carol","text":"{\"kind\":\"join\",\"name\":\"Carol\",\"color\":{\"name\":\"tangerine\"}}"}
 {"receive":"carol"}
 {"method":"POST","path":"/arena/other/__beni/tick"}
 {"receive":"carol"}

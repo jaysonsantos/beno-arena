@@ -1,10 +1,10 @@
 --! An illustrative arena. These shapes are preview data, not server state.
 
-import Appearance exposing (Color)
 import Html exposing (Html)
+import Palette exposing (Color)
 
 
-pub view : Color, Bool, Bool → Html msg
+pub view : Color.Type, Bool, Bool → Html msg
 view color moving grid =
     <div class={arenaClass moving grid}>
         <div class="arena-top">
@@ -40,7 +40,7 @@ view color moving grid =
                 <path
                     d="M -35 250 C 90 250 65 110 170 110 C 250 110 235 230 320 230 L 363 230"
                     fill="none"
-                    stroke="#ffa76e"
+                    stroke={Palette.paint Color.Tangerine}
                     stroke-width="21"
                     stroke-linecap="round"
                 />
@@ -57,7 +57,7 @@ view color moving grid =
                 <path
                     d="M 770 -30 L 770 105 C 770 185 905 155 905 245 C 905 315 820 320 820 390"
                     fill="none"
-                    stroke="#89cef4"
+                    stroke={Palette.paint Color.Sky}
                     stroke-width="16"
                     stroke-linecap="round"
                 />
@@ -74,7 +74,7 @@ view color moving grid =
                 <path
                     d="M 770 720 C 770 600 930 620 930 530 L 930 490"
                     fill="none"
-                    stroke="#c7acf1"
+                    stroke={Palette.paint Color.Lilac}
                     stroke-width="19"
                     stroke-linecap="round"
                 />
@@ -91,7 +91,7 @@ view color moving grid =
                 <path
                     d="M 190 535 C 110 535 115 400 205 400 L 425 400 C 525 400 535 280 450 280 L 420 280 C 330 280 345 170 430 170 C 510 170 565 200 565 270"
                     fill="none"
-                    stroke={Appearance.paint color}
+                    stroke={Palette.paint color}
                     stroke-width="32"
                     stroke-linecap="round"
                 />
@@ -136,15 +136,11 @@ pellet index =
     x = 35 + Int.mod (index * 137) 930
     y = 55 + Int.mod (index * 83) 560
     tint =
-        case Int.mod index 4 of
-            0 →
-                "#c5f277"
-            1 →
-                "#ffa76e"
-            2 →
-                "#89cef4"
-            _ →
-                "#c7acf1"
+        Palette.paint
+            (Maybe.withDefault
+                (List.get Palette.colors (Int.mod index (List.length Palette.colors)))
+                Color.Moss
+            )
     <circle
         cx={String.fromInt x}
         cy={String.fromInt y}
@@ -156,7 +152,7 @@ pellet index =
 
 eyes : Int, Int → Html msg
 eyes x y =
-    <g transform={"translate(${String.fromInt x} ${String.fromInt y})"}>
+    <g transform={"translate(${x} ${y})"}>
         <circle cx="1" cy="-6" r="4.5" fill="#fbfff4" />
         <circle cx="1" cy="6" r="4.5" fill="#fbfff4" />
         <circle cx="3" cy="-6" r="2.1" fill="#142017" />
@@ -164,21 +160,21 @@ eyes x y =
     </g>
 
 
-pub portrait : Color → Html msg
+pub portrait : Color.Type → Html msg
 portrait color =
     <svg
         class="snake-portrait"
         viewBox="0 0 230 100"
         role="img"
-        aria-label={Appearance.name color ++ " snake"}
+        aria-label={Palette.name color ++ " snake"}
     >
         <path
             d="M 35 66 C 10 66 12 31 40 31 L 115 31 C 143 31 143 69 170 69 L 195 69"
             fill="none"
-            stroke={Appearance.paint color}
+            stroke={Palette.paint color}
             stroke-width="21"
             stroke-linecap="round"
         />
         {eyes 195 69}
-        <circle cx="213" cy="35" r="4" fill={Appearance.paint color} opacity="0.5" />
+        <circle cx="213" cy="35" r="4" fill={Palette.paint color} opacity="0.5" />
     </svg>

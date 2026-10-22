@@ -4,6 +4,7 @@ import Browser.Events as Events
 import Cmd exposing (Cmd)
 import Html exposing (Html)
 import Live
+import Palette exposing (Color)
 import Protocol
 import Rules as Game
 import Sub exposing (Sub)
@@ -80,7 +81,10 @@ snake : Int → Protocol.Snake.Type
 snake index =
     { id = String.fromInt index
     , name = "Snake ${index}"
-    , color = Int.mod index 4
+    , color =
+        Maybe.withDefault
+            (List.get Palette.colors (Int.mod index (List.length Palette.colors)))
+            Color.Moss
     , length = Game.maxLength
     , alive = True
     , body =

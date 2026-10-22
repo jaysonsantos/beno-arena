@@ -1,5 +1,6 @@
 --! One shared schema contract for the object, the page, and stored checkpoints.
 
+import Palette
 import Rules as Game
 import Schema
 
@@ -7,7 +8,7 @@ import Schema
 pub schema Input tagged "kind" of
     Join as "join"
         name : String
-        color : Int
+        color : Palette.Color
     Aim as "aim"
         x : FiniteFloat
         y : FiniteFloat
@@ -27,7 +28,7 @@ pub schema Segment =
 pub schema Snake =
     id : String
     name : String
-    color : Int
+    color : Palette.Color
     body : List Segment
     length : Int
     alive : Bool
@@ -64,7 +65,7 @@ pub schema Packet tagged "kind" of
 pub schema StoredPlayer =
     id : String
     name : String
-    color : Int
+    color : Palette.Color
     body : List Point
     angle : FiniteFloat
     target : Point
@@ -112,10 +113,8 @@ readInput text =
                         if
                             String.isEmpty (String.trim data.name)
                                 || String.length data.name > 18
-                                || data.color < 0
-                                || data.color > 3
                         then
-                            Err "Use a name of 1 to 18 characters and a valid color."
+                            Err "Use a name of 1 to 18 characters."
                         else
                             Ok command
                     Input.Aim point →

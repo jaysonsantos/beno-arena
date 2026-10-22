@@ -1,6 +1,7 @@
 --! Pure game rules. One step always advances the simulation by 50 milliseconds.
 
 import Int32
+import Palette exposing (Color)
 import Random.Pcg as Pcg
 
 
@@ -12,7 +13,7 @@ pub type alias Point =
 pub type alias Player =
     id : String
     name : String
-    color : Int
+    color : Color.Type
     body : List Point
     angle : Float
     target : Point
@@ -103,7 +104,7 @@ pub player : State, String → Maybe Player
 player state id = List.head (List.filter state.players λp → p.id == id)
 
 
-pub join : State, String, String, Int → State
+pub join : State, String, String, Color.Type → State
 join state id name color =
     others = List.filter state.players λp → p.id ≠ id
     existingAlive = Maybe.withDefault (Maybe.map (player state id) .alive) False
@@ -120,7 +121,7 @@ join state id name color =
                 joined =
                     { id = id
                     , name = String.left (String.trim name) 18
-                    , color = clamp color 0 3
+                    , color = color
                     , body = body
                     , angle = 0
                     , target = { x = position.x + spawnMargin, y = position.y }

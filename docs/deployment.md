@@ -34,6 +34,8 @@ Stop the command with Ctrl-C after a check.
 - Segment indexes keep interpolation stable when the camera clips a body.
 - Each tick, join, and disconnect stores a schema checkpoint.
 - The checkpoint keeps the complete game state and both PCG seed words.
+- Inputs, snapshots, and checkpoints use the same Color schema from `game/Palette.beni`.
+- Each color carries a name, such as `{"name":"moss"}`.
 - Restore removes players whose sockets no longer exist.
 - A failed checkpoint read or write stops the arena and closes its sockets.
 - A closed connection requires the player to choose **Enter arena** again.
@@ -42,6 +44,7 @@ An active game does not request hibernation.
 An idle object has no timer and can restore its state from storage and its surviving sockets.
 The upstream host-timer probe remains separate from this local game check.
 The game does not require RPC or an outgoing WebSocket from an object.
+The Color schema change precedes the first deployment. No stored production data needs conversion.
 
 ## Owner answers before deployment
 

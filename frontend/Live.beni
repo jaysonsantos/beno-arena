@@ -1,12 +1,12 @@
 --! The live arena reads authoritative snapshots. The page sends input only.
 
-import Appearance
 import Browser.Events as Events
 import Cmd exposing (Cmd)
 import Dom
 import Duration
 import Html exposing (Html)
 import Interpolation
+import Palette exposing (Color)
 import Protocol
 import Rules as Game
 import Sub exposing (Sub)
@@ -21,7 +21,7 @@ pub type alias Model =
     previous : Maybe Protocol.Snapshot.Type
     blend : Float
     name : String
-    color : Int
+    color : Color.Type
     note : String
     pending : Maybe Game.Point
 
@@ -44,13 +44,13 @@ init =
     , previous = Nothing
     , blend = 1
     , name = ""
-    , color = 0
+    , color = Color.Moss
     , note = "Choose Enter arena to connect."
     , pending = Nothing
     }
 
 
-pub start : String, Int, Model → Model × Cmd Msg
+pub start : String, Color.Type, Model → Model × Cmd Msg
 start name color model =
     next = { model | name = name, color = color, note = "Connect to the arena…" }
     case model.socket of
@@ -199,7 +199,7 @@ update msg model =
             )
 
 
-joinCommand : Socket, String, Int → Cmd Msg
+joinCommand : Socket, String, Color.Type → Cmd Msg
 joinCommand socket name color = command socket (Protocol.Input.Join { name = name, color = color })
 
 
@@ -236,7 +236,7 @@ pointer event =
 
 pub view : Model → Html Msg
 view model =
-    <div class="arena live-arena">
+    <div class="arena live-arena" style={Palette.variables}>
         <div class="arena-top">
             <span class="preview-badge"><span class="status-dot" /> LIVE MULTIPLAYER</span><button onClick={Stop}>Leave arena</button>
         </div>
@@ -271,7 +271,7 @@ view model =
                                 cx={String.fromFloat point.x}
                                 cy={String.fromFloat point.y}
                                 r="3"
-                                fill="#c5f277"
+                                fill={Palette.paint Color.Moss}
                                 opacity="0.8"
                             />
                         }
@@ -291,7 +291,7 @@ view model =
                                             cx={String.fromFloat part.x}
                                             cy={String.fromFloat part.y}
                                             r={String.fromFloat Game.radius}
-                                            fill={paint snake.color}
+                                            fill={Palette.paint snake.color}
                                         />
                                     }
                                 </For>
@@ -323,8 +323,3 @@ view model =
             </div>
         </div>
     </div>
-
-
-paint : Int → String
-paint color =
-    Appearance.paint (Maybe.withDefault (List.get Appearance.colors color) Appearance.Moss)

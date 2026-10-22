@@ -2,7 +2,11 @@
   "name": "snake-arena-render-benchmark",
   "build": {
     "platform": "browser-tea",
-    "paths": ["Main.beni", "../../frontend/Live.beni", "../../frontend/Appearance.beni", "../../game"],
+    "paths": [
+      "Main.beni",
+      "../../frontend/Live.beni",
+      "../../game"
+    ],
     "out": "../../build/page/benchmark",
     "base": "/benchmark/"
   },

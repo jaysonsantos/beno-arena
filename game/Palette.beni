@@ -1,0 +1,54 @@
+--! One color schema and palette for inputs, snapshots, checkpoints, and views.
+
+pub schema Color tagged "name" of
+    Moss as "moss"
+    Tangerine as "tangerine"
+    Sky as "sky"
+    Lilac as "lilac"
+
+
+pub colors : List Color.Type
+colors = [ Color.Moss, Color.Tangerine, Color.Sky, Color.Lilac ]
+
+
+pub name : Color.Type → String
+name color =
+    case color of
+        Color.Moss →
+            "Moss"
+        Color.Tangerine →
+            "Tangerine"
+        Color.Sky →
+            "Sky"
+        Color.Lilac →
+            "Lilac"
+
+
+pub paint : Color.Type → String
+paint color =
+    case color of
+        Color.Moss →
+            "#c5f277"
+        Color.Tangerine →
+            "#ffa76e"
+        Color.Sky →
+            "#89cef4"
+        Color.Lilac →
+            "#c7acf1"
+
+
+pub className : Color.Type → String
+className color =
+    case color of
+        Color.Moss →
+            "moss"
+        Color.Tangerine →
+            "tangerine"
+        Color.Sky →
+            "sky"
+        Color.Lilac →
+            "lilac"
+
+
+pub variables : List (String × String)
+variables = List.map colors λcolor → ( "--" ++ className color, paint color )

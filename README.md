@@ -72,6 +72,7 @@ The Worker checks every client message with the shared schema.
 Clients cannot set a snake's position, length, score, or simulation tick.
 They send only a join request or an aim point.
 The object accepts at most one aim point per player per tick.
+The shared Color schema represents each color by name, such as `{"name":"moss"}`.
 
 The local checks currently fail on client close replies in the pinned beni platform.
 Both Worker build modes pass the other 14 transcript checks.
@@ -106,3 +107,5 @@ There is no release command. Do not deploy this task.
 The local Wrangler configuration uses the pinned runtime's compatibility date.
 A production account, hostname, and current compatibility date still need a separate deployment task.
 See the [deployment notes](docs/deployment.md) and [capability evidence](docs/capabilities.md).
+
+The project uses the [MIT License](LICENSE).

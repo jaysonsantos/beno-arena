@@ -1,17 +1,17 @@
 --! The lobby keeps the preview separate from the live authoritative arena.
 
-import Appearance exposing (Color, Moss)
 import Arena
 import Cmd exposing (Cmd)
 import Html exposing (Html)
 import Live
+import Palette exposing (Color)
 import Sub exposing (Sub)
 import Tea
 
 
 type alias Model =
     name : String
-    color : Color
+    color : Color.Type
     moving : Bool
     grid : Bool
     help : Bool
@@ -21,7 +21,7 @@ type alias Model =
 
 type Msg
     = NameChanged String
-    | ColorChanged Color
+    | ColorChanged Color.Type
     | ToggleMotion
     | ToggleGrid
     | ToggleHelp
@@ -37,7 +37,7 @@ nameLimit = 18
 init : ⊤ → Model × Cmd Msg
 init ⊤ =
     ( { name = ""
-      , color = Moss
+      , color = Color.Moss
       , moving = True
       , grid = True
       , help = False
@@ -65,16 +65,7 @@ update msg model =
             ( { model | preview = not model.preview }, Cmd.none )
 
         EnterArena →
-            color =
-                Maybe.withDefault
-                    (List.head
-                        (List.filter
-                            (List.indexedMap Appearance.colors λindex value → ( index, value ))
-                            λpair → pair.1 == model.color
-                        )
-                    )
-                    ( 0, Moss )
-            ( live, command ) = Live.start (playerName model.name) color.0 model.live
+            ( live, command ) = Live.start (playerName model.name) model.color model.live
             ( { model | live = live }, Cmd.map command "live-arena" LiveMsg )
         LiveMsg message →
             ( live, command ) = Live.update message model.live
@@ -83,7 +74,7 @@ update msg model =
 
 view : Model → Html Msg
 view model =
-    <div class="site-shell">
+    <div class="site-shell" style={Palette.variables}>
         <header class="site-header">
             <a class="brand" href="/" aria-label="Snake Arena home">
                 <svg viewBox="0 0 40 40" aria-hidden="true">
@@ -158,11 +149,11 @@ view model =
                     <div class="lobby-heading">
                         <span class="eyebrow">MEET YOUR SNAKE</span><span class="section-number">01 /</span>
                     </div>
-                    <div class={"portrait-wrap " ++ Appearance.className model.color}>
+                    <div class={"portrait-wrap " ++ Palette.className model.color}>
                         {Arena.portrait model.color}
                     </div>
                     <div class="player-title">
-                        <h2>{playerName model.name}</h2><span>{Appearance.name model.color}</span>
+                        <h2>{playerName model.name}</h2><span>{Palette.name model.color}</span>
                     </div>
                     <div class="name-field">
                         <label for="player-name">Your name</label>
@@ -179,11 +170,11 @@ view model =
                     <fieldset class="color-field">
                         <legend>Pick a color</legend>
                         <div class="color-options">
-                            <For each={Appearance.colors} keyed={False}>
+                            <For each={Palette.colors} keyed={False}>
                                 {λcolor →
                                     <button
-                                        class={"color-button " ++ Appearance.className color}
-                                        aria-label={Appearance.name color}
+                                        class={"color-button " ++ Palette.className color}
+                                        aria-label={Palette.name color}
                                         aria-pressed={boolText (model.color == color)}
                                         onClick={ColorChanged color}
                                     >

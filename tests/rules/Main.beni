@@ -1,5 +1,6 @@
 import Interpolation
 import Node
+import Palette exposing (Color)
 import Protocol
 import Rules as Game
 
@@ -16,7 +17,7 @@ main =
                 && List.all initial.food λp →
                     p.x > 0 && p.x < Game.width && p.y > 0 && p.y < Game.height
             )
-    joined = Game.join initial "one" "Alice" 2
+    joined = Game.join initial "one" "Alice" Color.Sky
     test3 =
         check
             "join creates one live snake"
@@ -24,7 +25,7 @@ main =
     test4 =
         check
             "a live player cannot join twice"
-            ((Game.join joined "one" "again" 0).players == joined.players)
+            ((Game.join joined "one" "again" Color.Moss).players == joined.players)
     test5 =
         check
             "a tick advances at a fixed speed"
@@ -59,7 +60,7 @@ main =
             (not (snake killed "one").alive && (snake killed "two").alive)
     test10 = check "the dead body becomes food" (List.member killed.food { x = 106, y = 100 })
     test11 = check "a dead snake cannot eat" ((snake killed "one").length == Game.initialLength)
-    revived = Game.join killed "one" "Alice" 1
+    revived = Game.join killed "one" "Alice" Color.Tangerine
     test12 =
         check
             "a dead player can join again"
@@ -115,7 +116,7 @@ main =
     test20 =
         check
             "the arena has a player limit"
-            (List.length (Game.join full "extra" "extra" 0).players == Game.maxPlayers)
+            (List.length (Game.join full "extra" "extra" Color.Moss).players == Game.maxPlayers)
     test21 =
         check
             "fixed inputs produce the same next state"
@@ -147,9 +148,11 @@ main =
             Ok _ →
                 False
     accepted =
-        case Protocol.readInput "{\"kind\":\"join\",\"name\":\"Alice\",\"color\":2}" of
+        case
+            Protocol.readInput "{\"kind\":\"join\",\"name\":\"Alice\",\"color\":{\"name\":\"sky\"}}"
+        of
             Ok (Protocol.Input.Join data) →
-                data.name == "Alice" && data.color == 2
+                data.name == "Alice" && data.color == Color.Sky
             _ →
                 False
     saved = Protocol.restore (Protocol.checkpoint joined)
@@ -180,7 +183,7 @@ main =
         }
     sharedResult = Game.step sharedFood
     once = List.length (List.filter (Game.step killed).food λpoint → point == { x = 106, y = 100 })
-    crowd = Game.join joined "two" "Bob" 0
+    crowd = Game.join joined "two" "Bob" Color.Moss
     separation = List.all crowd.players λa →
         List.all crowd.players λb →
             a.id == b.id
@@ -197,7 +200,7 @@ main =
             , snakes =
                 [ { id = "one"
                   , name = "one"
-                  , color = 0
+                  , color = Color.Moss
                   , length = 12
                   , alive = True
                   , body = [ { index = 0, x = 0, y = 100 }, { index = 1, x = 100, y = 100 } ]
@@ -210,7 +213,7 @@ main =
             , snakes =
                 [ { id = "one"
                   , name = "one"
-                  , color = 0
+                  , color = Color.Moss
                   , length = 12
                   , alive = True
                   , body = [ { index = 1, x = 106, y = 100 } ]
@@ -244,9 +247,14 @@ main =
             "fresh corpse food replaces old food at the limit"
             (List.member saturatedResult.food { x = Game.width - Game.radius + Game.speed, y = 100 }
             )
-    test36 = check "empty names fail" (refused "{\"kind\":\"join\",\"name\":\" \",\"color\":0}")
+    test36 =
+        check
+            "empty names fail"
+            (refused "{\"kind\":\"join\",\"name\":\" \",\"color\":{\"name\":\"moss\"}}")
     test37 =
-        check "unknown colors fail" (refused "{\"kind\":\"join\",\"name\":\"Alice\",\"color\":4}")
+        check
+            "unknown colors fail"
+            (refused "{\"kind\":\"join\",\"name\":\"Alice\",\"color\":{\"name\":\"unknown\"}}")
     test38 = check "non-finite coordinates fail" (refused "{\"kind\":\"aim\",\"x\":1e999,\"y\":10}")
     test39 = check "unknown input variants fail" (refused "{\"kind\":\"score\",\"value\":999}")
     test40 = check "interpolation uses stable body indexes" (near middleX 103)
@@ -255,6 +263,17 @@ main =
         check
             "a first snapshot needs no previous state"
             (Interpolation.between Nothing newFrame 0 == newFrame)
+    test43 = check "every join color round-trips" (List.all Palette.colors joinColorRoundTrip)
+    test44 =
+        check
+            "every snapshot color round-trips"
+            (List.all Palette.colors (snapshotColorRoundTrip baseFrame _))
+    test45 =
+        check
+            "every checkpoint color round-trips"
+            (List.all Palette.colors (checkpointColorRoundTrip joined _))
+    test46 =
+        check "numeric colors fail" (refused "{\"kind\":\"join\",\"name\":\"Alice\",\"color\":2}")
     results =
         [ test1
         , test2
@@ -298,6 +317,10 @@ main =
         , test40
         , test41
         , test42
+        , test43
+        , test44
+        , test45
+        , test46
         ]
     output =
         String.join
@@ -310,7 +333,7 @@ example : String, Float, Float → Game.Player
 example id x y =
     { id = id
     , name = id
-    , color = 0
+    , color = Color.Moss
     , body = [ { x = x, y = y } ]
     , angle = 0
     , target = { x = Game.width, y = y }
@@ -327,7 +350,7 @@ snake state id =
         Nothing →
             { id = ""
             , name = ""
-            , color = 0
+            , color = Color.Moss
             , body = []
             , angle = 0
             , target = { x = 0, y = 0 }
@@ -350,4 +373,47 @@ refused text =
         Err _ →
             True
         Ok _ →
+            False
+
+
+joinColorRoundTrip : Color.Type → Bool
+joinColorRoundTrip color =
+    case Protocol.Input.print (Protocol.Input.Join { name = "Alice", color = color }) of
+        Ok text →
+            case Protocol.readInput text of
+                Ok (Protocol.Input.Join value) →
+                    value.color == color
+                _ →
+                    False
+        Err _ →
+            False
+
+
+snapshotColorRoundTrip : Protocol.Snapshot.Type, Color.Type → Bool
+snapshotColorRoundTrip snapshot color =
+    expected = { snapshot | snakes = List.map snapshot.snakes λentry → { entry | color = color } }
+    case Protocol.Snapshot.print expected of
+        Ok text →
+            case Protocol.Snapshot.parse text of
+                Ok actual →
+                    actual == expected
+                Err _ →
+                    False
+        Err _ →
+            False
+
+
+checkpointColorRoundTrip : Game.State, Color.Type → Bool
+checkpointColorRoundTrip game color =
+    expected =
+        Protocol.checkpoint
+            { game | players = List.map game.players λentry → { entry | color = color } }
+    case Protocol.Checkpoint.print expected of
+        Ok text →
+            case Protocol.Checkpoint.parse text of
+                Ok actual →
+                    actual == expected
+                Err _ →
+                    False
+        Err _ →
             False

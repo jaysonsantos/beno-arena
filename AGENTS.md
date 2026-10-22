@@ -8,8 +8,9 @@
 - Use only the APIs that beni core and its platforms provide.
 - If an API is missing, search the open issues in `canassa/beni`.
 - Add the game requirement to an existing issue, or open an issue with evidence and completion criteria.
-- Stop after the capability report if a required API is missing.
-- Wait for the coordinator before you use a substitute or start Step 2.
+- The user authorized frontend, CSS, and Zorg/Nix preparation after the capability report.
+- Continue that preparation with existing APIs. Do not invent a network substitute.
+- Keep the arena preview visibly separate from live multiplayer.
 - Keep project instructions in `AGENTS.md`.
 - Use small commits with Conventional Commits messages.
 - Do not add a remote, push commits, create a repository, or deploy the game.
@@ -24,3 +25,25 @@
 
 The task contract is `/home/jayson/.local/state/beni-dispatch/snake-arena-prompt.md`.
 Read it in full before work.
+
+## Paths
+
+| Path | Purpose |
+|---|---|
+| `frontend/` | Beni lobby, SVG preview, page shell, and CSS |
+| `nix/` | Pinned Zorg and beni compiler derivations |
+| `scripts/` | Build, local server, lint, and browser checks |
+| `build/page/` | Generated static assets |
+| `docs/` | Capability evidence and deployment preparation |
+
+## Commands
+
+- Open the tools: `nix develop`.
+- Build the compiler: `nix build .#beni`.
+- Build the page: `scripts/build.sh`.
+- Serve the page locally: `scripts/dev.sh`.
+- Run lint: `scripts/lint.sh`.
+- Run browser checks: `scripts/test.sh`.
+- Run both checks: `scripts/all.sh`.
+- Package the static page: `nix build`.
+- Do not release or deploy during this task.

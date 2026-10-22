@@ -1,0 +1,42 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: DeterminateSystems/nix-installer-action@v21
+      - run: nix develop --command scripts/lint.sh
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: DeterminateSystems/nix-installer-action@v21
+      - run: nix develop --command scripts/test.sh
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: DeterminateSystems/nix-installer-action@v21
+      - run: nix build --max-jobs 1 --cores 2
+  check:
+    if: always()
+    needs: [lint, test, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check every required job
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq --exit-status 'all(.[].result; . == "success")' > /dev/null

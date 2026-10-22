@@ -1,0 +1,45 @@
+{
+  "nodes": {
+    "beni-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792521083,
+        "narHash": "sha256-xOc83xnShIt45CFK8bx5LFdPUn/6KiK78y5MWc79CYo=",
+        "owner": "canassa",
+        "repo": "beni",
+        "rev": "4586e4fb0f329b6bd1cf5884288b694754afd6aa",
+        "type": "github"
+      },
+      "original": {
+        "owner": "canassa",
+        "repo": "beni",
+        "rev": "4586e4fb0f329b6bd1cf5884288b694754afd6aa",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1789114715,
+        "narHash": "sha256-ugpsyk3NM2s87vXfUiIIiibbJ4Pp0JPS5p/3mfs+q+c=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "21a67dc470149f337cecafbe965d8d252a390518",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "21a67dc470149f337cecafbe965d8d252a390518",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "beni-src": "beni-src",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

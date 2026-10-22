@@ -1,0 +1,13 @@
+{
+  "Exclude": [
+    "frontend/fonts/",
+    "build/",
+    "out/",
+    "\\.beni-cache/",
+    "\\.zorg-cache/",
+    "\\.zig-cache/",
+    "\\.scratch/",
+    "\\.direnv/",
+    "result"
+  ]
+}

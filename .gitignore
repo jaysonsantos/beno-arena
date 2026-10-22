@@ -6,3 +6,5 @@ out/
 result
 .env
 .envrc
+.zorg-cache/
+.zig-cache/

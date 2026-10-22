@@ -1,0 +1,59 @@
+# Compiler output, caches, and local browser profiles are generated.
+exclude: ^(build/|\.scratch/|\.direnv/|result|frontend/fonts/)
+repos:
+  - repo: local
+    hooks:
+      - id: beni-format
+        name: beni format
+        language: system
+        entry: beni fmt --check
+        files: \.beni$
+      - id: nix-format
+        name: Nix format
+        language: system
+        entry: nixfmt --check
+        files: \.nix$
+      - id: shellcheck
+        name: ShellCheck
+        language: system
+        entry: shellcheck
+        types: [shell]
+      - id: json
+        name: JSON syntax
+        language: system
+        entry: check-json
+        types: [json]
+      - id: yaml
+        name: YAML syntax
+        language: system
+        entry: check-yaml
+        types: [yaml]
+      - id: merge-conflicts
+        name: Merge conflicts
+        language: system
+        entry: check-merge-conflict
+      - id: trailing-whitespace
+        name: Trailing whitespace
+        language: system
+        entry: trailing-whitespace-fixer
+        types: [text]
+      - id: end-of-file
+        name: Final newline
+        language: system
+        entry: end-of-file-fixer
+        types: [text]
+      - id: editorconfig
+        name: EditorConfig
+        language: system
+        entry: editorconfig-checker
+        pass_filenames: false
+      - id: typos
+        name: Spelling
+        language: system
+        entry: typos
+        types: [text]
+      - id: gitleaks
+        name: Secret scan
+        language: system
+        entry: gitleaks dir --no-banner --redact .
+        pass_filenames: false

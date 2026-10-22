@@ -1,7 +1,8 @@
 # Deployment preparation
 
 State: design prepared; deployment blocked by beni platform support.
-The game has no executable build yet.
+The repository now prepares a static frontend package.
+The Worker and live game remain blocked.
 
 Beni-generated JavaScript is valid deployment output.
 The missing part is a supported beni interface to the host APIs and required exports.
@@ -36,7 +37,7 @@ These values define the intended configuration. They are not a runnable Wrangler
 | Assets binding | `ASSETS` |
 | Worker-first routes | `/arena/*` |
 | Worker entrypoint | The output from the future beni Cloudflare platform; path unresolved |
-| Assets directory | The browser build output; path unresolved |
+| Assets directory | `build/page/`, or the frontend Nix package output |
 | Compatibility date | Select and pin it with the first tested build |
 | Storage | SQLite for state that must survive restarts |
 

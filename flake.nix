@@ -1,28 +1,118 @@
 {
-  description = "A small authoritative multiplayer snake game";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-  outputs = { nixpkgs, ... }:
+  description = "Snake Arena: a beni browser frontend and Zorg-built compiler";
+
+  # Use the exact nixos-26.05 revision in beni's lockfile.
+  # Upgrade the compiler and its tested host tools together.
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/21a67dc470149f337cecafbe965d8d252a390518";
+  inputs.beni-src = {
+    url = "github:canassa/beni/4586e4fb0f329b6bd1cf5884288b694754afd6aa";
+    flake = false;
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      beni-src,
+    }:
     let
-      forAllSystems = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
-    in {
-      devShells = forAllSystems (system:
-        let pkgs = import nixpkgs { inherit system; };
-        in { default = pkgs.mkShell {
-          packages = with pkgs; [
-            # Runtime for compiled beni programs.
-            nodejs_24
-            # Repository checks and release tools.
-            prek nixfmt shellcheck typos taplo gitleaks git-cliff editorconfig-checker
-          ] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
-            # Browser smoke tests on Linux.
-            pkgs.chromium
-          ];
-          CHROMIUM_PATH = pkgs.lib.optionalString pkgs.stdenv.isLinux "${pkgs.chromium}/bin/chromium";
-          shellHook = ''
-            export TMPDIR="$PWD/.scratch"
-            export PREK_HOME="$PWD/.scratch/prek"
-            mkdir -p "$TMPDIR"
-          '';
-        }; });
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+      forAllSystems = nixpkgs.lib.genAttrs systems;
+      tools =
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+          zorg = pkgs.callPackage ./nix/zorg.nix { };
+          beni = pkgs.callPackage ./nix/beni.nix {
+            inherit zorg;
+            src = beni-src;
+          };
+        in
+        {
+          inherit pkgs zorg beni;
+        };
+    in
+    {
+      packages = forAllSystems (
+        system:
+        let
+          inherit (tools system) pkgs zorg beni;
+          frontend = pkgs.stdenvNoCC.mkDerivation {
+            pname = "snake-arena-frontend";
+            version = "0.0.0";
+            src = pkgs.lib.fileset.toSource {
+              root = ./.;
+              fileset = pkgs.lib.fileset.unions [
+                ./beni.json
+                ./frontend
+                ./scripts/build.sh
+              ];
+            };
+            nativeBuildInputs = [ beni ];
+            dontConfigure = true;
+            buildPhase = ''
+              runHook preBuild
+              export SNAKE_TOOLCHAIN=1
+              export XDG_CACHE_HOME="$PWD/.scratch/cache"
+              bash scripts/build.sh
+              runHook postBuild
+            '';
+            installPhase = ''
+              runHook preInstall
+              mkdir -p "$out"
+              cp -r build/page/. "$out/"
+              runHook postInstall
+            '';
+          };
+        in
+        {
+          inherit zorg beni frontend;
+          default = frontend;
+        }
+      );
+
+      devShells = forAllSystems (
+        system:
+        let
+          inherit (tools system) pkgs zorg beni;
+        in
+        {
+          default = pkgs.mkShell {
+            packages = [
+              # Compile beni and run its generated modules.
+              zorg
+              beni
+              pkgs.nodejs_24
+              # Serve local assets and check repository files.
+              pkgs.python3
+              pkgs.jq
+              pkgs.prek
+              pkgs.nixfmt
+              pkgs.shellcheck
+              pkgs.typos
+              pkgs.gitleaks
+              pkgs.editorconfig-checker
+              pkgs.python3Packages.pre-commit-hooks
+            ]
+            ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.chromium ];
+            shellHook = ''
+              export SNAKE_TOOLCHAIN=1
+              export TMPDIR="$PWD/.scratch/tmp"
+              export PREK_HOME="$PWD/.scratch/prek"
+              export ZORG_GLOBAL_CACHE_DIR="$PWD/.scratch/zorg"
+              mkdir -p "$TMPDIR" "$PREK_HOME" "$ZORG_GLOBAL_CACHE_DIR"
+            '';
+          };
+        }
+      );
+
+      checks = forAllSystems (system: {
+        frontend = self.packages.${system}.frontend;
+      });
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
 }

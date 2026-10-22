@@ -1,6 +1,8 @@
 # Beni capability check
 
-State: blocked at Step 1. No game code or runtime tests.
+Audit state: the network and input APIs remain blocked.
+Jayson subsequently authorized frontend, CSS, and Zorg/Nix preparation with existing APIs.
+The frontend uses an illustrative arena and does not substitute another network protocol.
 
 Source revision: `4586e4fb0f329b6bd1cf5884288b694754afd6aa`.
 Source root: `/home/jayson/src/beni.worktrees/snake-arena`.
@@ -48,9 +50,9 @@ Both deployment choices require the browser fixes.
 - `examples/sternhalma/` uses typed drag events and browser model updates.
 - `Tea.element` supplies commands and subscriptions through `platforms/browser-tea/Tea.beni:58`.
 
-These findings come from source inspection.
-I did not rebuild beni or run these examples.
-The contract requires a stop when a required capability is missing.
+These audit findings come from source inspection.
+The audit did not rebuild beni or run these examples.
+The later frontend preparation has its own build and browser checks.
 
 ## Next
 

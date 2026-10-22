@@ -1,0 +1,7 @@
+[files]
+extend-exclude = ["flake.lock", "build", ".scratch", "frontend/fonts"]
+
+[default.extend-words]
+beni = "beni"
+zorg = "zorg"
+celld = "celld"

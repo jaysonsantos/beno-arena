@@ -1,0 +1,92 @@
+--! A local SVG stress scene: 16 maximum-length snakes and 600 food circles.
+
+import Browser.Events as Events
+import Cmd exposing (Cmd)
+import Html exposing (Html)
+import Live
+import Protocol
+import Rules as Game
+import Sub exposing (Sub)
+import Tea
+
+
+type Msg
+    = Frame Float
+    | Child Live.Msg
+
+
+main : Tea.Program
+main =
+    Tea.element
+        { init = λ⊤ → ( 0, Cmd.none ), update = update, view = view, subscriptions = subscriptions }
+
+
+update : Msg, Float → Float × Cmd Msg
+update message elapsed =
+    case message of
+        Frame delta →
+            ( elapsed + delta, Cmd.none )
+        Child _ →
+            ( elapsed, Cmd.none )
+
+
+subscriptions : Float → Sub Msg
+subscriptions _ = Events.onAnimationFrameDelta Frame
+
+
+view : Float → Html Msg
+view elapsed =
+    base = Live.init
+    model =
+        { base
+            | active = True
+            , current = Just scene
+            , previous = Just previous
+            , blend = (sin (elapsed / 500) + 1) / 2
+            , note = "Local SVG benchmark: 16 snakes, 2,880 body samples, 600 food circles."
+        }
+    Html.map (Live.view model) Child
+
+
+scene : Protocol.Snapshot.Type
+scene =
+    { tick = 1
+    , you = "0"
+    , alive = True
+    , cameraX = 0
+    , cameraY = 0
+    , snakes = List.initialize Game.maxPlayers snake
+    , food =
+        List.initialize 600 λindex →
+            { x = toFloat (20 + Int.mod (index * 137) 960)
+            , y = toFloat (30 + Int.mod (index * 83) 620)
+            }
+    , scores =
+        List.initialize 5 λindex →
+            { id = String.fromInt index, name = "Snake ${index}", length = Game.maxLength }
+    }
+
+
+previous : Protocol.Snapshot.Type
+previous =
+    { scene
+        | snakes =
+            List.map scene.snakes λvalue →
+                { value | body = List.map value.body λpart → { part | x = part.x - 6 } }
+    }
+
+
+snake : Int → Protocol.Snake.Type
+snake index =
+    { id = String.fromInt index
+    , name = "Snake ${index}"
+    , color = Int.mod index 4
+    , length = Game.maxLength
+    , alive = True
+    , body =
+        List.initialize Game.maxLength λpart →
+            { index = part
+            , x = toFloat (30 + Int.mod part 45 * 20)
+            , y = toFloat (50 + index * 32 + part // 45 * 2)
+            }
+    }

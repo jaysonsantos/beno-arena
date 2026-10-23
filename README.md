@@ -52,6 +52,7 @@ The `.envrc` file stays local:
 
 ```sh
 dotenv_if_exists
+eval "$(devenv direnvrc)"
 use devenv
 ```
 

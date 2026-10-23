@@ -24,6 +24,7 @@ pub type alias Model =
     color : Color.Type
     note : String
     pending : Maybe Game.Point
+    fullscreen : Bool
 
 
 pub type Msg
@@ -31,6 +32,7 @@ pub type Msg
     | Frame Float
     | Pointed Float Float Float Float
     | Key String
+    | Fullscreen Bool
     | Flush
     | Stop
     | Unsent WebSocket.WriteError
@@ -46,6 +48,7 @@ init =
     , color = Color.Moss
     , note = "Choose Enter arena to connect."
     , pending = Nothing
+    , fullscreen = False
     }
 
 
@@ -86,7 +89,7 @@ update msg model =
                             ( { model
                                 | note =
                                     if data.alive then
-                                        "Move the pointer, drag a finger, or use the arrow keys."
+                                        "Move the pointer, drag a finger, or use the arrow keys or WASD."
                                     else
                                         "The arena is full. Try Enter arena again."
                               }
@@ -105,7 +108,7 @@ update msg model =
                                     , playback = SnapshotBuffer.receive data.snapshot model.playback
                                     , note =
                                         if data.snapshot.alive then
-                                            "Move the pointer, drag a finger, or use the arrow keys."
+                                            "Move the pointer, drag a finger, or use the arrow keys or WASD."
                                         else
                                             "Your snake died. Choose Enter arena to join again."
                                   }
@@ -175,6 +178,8 @@ update msg model =
                     ( { model | pending = point }, Cmd.none )
                 Nothing →
                     ( model, Cmd.none )
+        Fullscreen on →
+            ( { model | fullscreen = on }, Cmd.none )
         Flush →
             case ( model.socket, model.pending ) of
                 ( Just socket, Just point ) →
@@ -215,10 +220,37 @@ subscriptions model =
             [ WebSocket.listen "/arena/main/ws" [] Heard
             , Events.onAnimationFrameDelta Frame
             , Time.every (Duration.millis Game.tickMillis) λ_ → Flush
-            , Events.onKeyDown λevent → Key (Html.key event)
+            , Events.onKeyDown (keyed model.fullscreen _)
             ]
     else
         Sub.none
+
+
+--| Full screen keeps every key but Escape away from the browser. Escape leaves full screen.
+keyed : Bool, Html.Event → Msg
+keyed fullscreen event =
+    key = Html.key event
+    if fullscreen && key == "Escape" then
+        Fullscreen False
+    else
+        if fullscreen then
+            Html.preventDefault event
+        Key (steer key)
+
+
+steer : String → String
+steer key =
+    case String.toLower key of
+        "w" →
+            "ArrowUp"
+        "s" →
+            "ArrowDown"
+        "a" →
+            "ArrowLeft"
+        "d" →
+            "ArrowRight"
+        _ →
+            key
 
 
 pointer : Html.Pointer → Msg
@@ -232,9 +264,19 @@ pointer event =
 
 pub view : Model → Html Msg
 view model =
-    <div class="arena live-arena" style={Palette.variables}>
+    <div
+        class={if model.fullscreen then "arena live-arena fullscreen" else "arena live-arena"}
+        style={Palette.variables}
+    >
         <div class="arena-top">
-            <span class="preview-badge"><span class="status-dot" /> LIVE MULTIPLAYER</span><button onClick={Stop}>Leave arena</button>
+            <span class="preview-badge"><span class="status-dot" /> LIVE MULTIPLAYER</span>
+            <span class="arena-actions">
+                {if model.fullscreen then
+                    <button onClick={Fullscreen False}>Exit full screen (Esc)</button>
+                 else
+                    <button onClick={Fullscreen True}>Full screen</button>
+                }<button onClick={Stop}>Leave arena</button>
+            </span>
         </div>
         {case model.current of
             Nothing →

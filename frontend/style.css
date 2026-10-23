@@ -263,3 +263,10 @@ h1 > span { color: #7c8675; }
   .live-scores { top: 56px; right: 12px; width: 135px; padding: 9px; }
   .live-scores li > span { max-width: 66px; }
 }
+.live-arena .arena-actions { display: flex; gap: 8px; }
+.live-arena.fullscreen {
+  position: fixed; inset: 0; z-index: 100; min-height: 0; max-height: none; height: 100dvh;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.live-arena.fullscreen .arena-art { min-height: 0; max-height: none; height: 100dvh; }
+body:has(.live-arena.fullscreen) { overflow: hidden; overscroll-behavior: none; }

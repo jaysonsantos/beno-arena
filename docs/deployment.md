@@ -11,6 +11,7 @@ The workflow installs the Nix tools, checks the rules, and runs `scripts/deploy.
 The script selects `wrangler deploy --env production` from the pinned Workers shell.
 Wrangler runs the configured `scripts/build.sh` command before upload.
 That command compiles both the beni page and the beni Worker.
+The release page includes public source maps. Each map embeds its beni source.
 The production environment declares the custom domain and the `ARENAS` binding.
 Its compatibility date stays separate from the older local test runtime.
 

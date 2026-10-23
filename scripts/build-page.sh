@@ -4,7 +4,7 @@ cd "$(dirname "$0")/.."
 if [[ "${BENO_TOOLCHAIN:-}" != "1" ]]; then
   exec nix develop --command bash scripts/build-page.sh "$@"
 fi
-beni build --release
+beni build --release --source-maps
 cp frontend/style.css build/page/style.css
 mkdir -p build/page/fonts
 cp frontend/fonts/* build/page/fonts/

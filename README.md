@@ -1,6 +1,7 @@
 # Snake Arena
 
 A small multiplayer snake game in beni.
+Play at [snake-arena.jayson.com.br](https://snake-arena.jayson.com.br).
 One Cloudflare Durable Object owns each arena.
 The browser sends input and draws interpolated SVG snapshots from the server.
 
@@ -76,7 +77,7 @@ It accepts at most one join request per player per tick.
 The shared Color schema represents each color by name, such as `{"name":"moss"}`.
 
 The local checks currently fail on client close replies in the pinned beni platform.
-Both Worker build modes pass the other 18 runtime assertions and all six transcript-parser checks.
+Both Worker build modes pass the other 18 socket assertions, 12 storage assertions, and six transcript-parser checks.
 See the [check results](docs/checks.md) and [beni issue #724](https://github.com/canassa/beni/issues/724#issuecomment-6352841942).
 
 | Path | Purpose |
@@ -103,10 +104,21 @@ nix build .#worker
 
 `nix build` also builds the static frontend package.
 The output keeps each font license beside its font.
-There is no release command. Do not deploy this task.
+There is no version release command.
 
-The local Wrangler configuration uses the pinned runtime's compatibility date.
-A production account, hostname, and current compatibility date still need a separate deployment task.
+## Deploy
+
+Every push to `main` runs `.github/workflows/deploy.yml`.
+The workflow checks the rules and runs `scripts/deploy.sh` with the pinned Workers tools.
+Wrangler runs `scripts/build.sh` before it uploads the page and Worker.
+The production environment uses `snake-arena.jayson.com.br` and its own compatibility date.
+Set the `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` repository secrets before the first workflow deployment.
+The API token needs the Edit Cloudflare Workers permissions for the deployment account and domain.
+
+For an authenticated local deployment, run `scripts/deploy.sh`.
+For a branch preview, run `wrangler preview` with a current Wrangler release.
+The preview uses a separate Durable Object namespace and storage.
+The CI test job keeps the known client-close failure visible. The deploy workflow checks the rules before deployment.
 See the [deployment notes](docs/deployment.md) and [capability evidence](docs/capabilities.md).
 
 The project uses the [MIT License](LICENSE).

@@ -126,6 +126,7 @@
               pkgs.shellcheck
               pkgs.typos
               pkgs.gitleaks
+              pkgs.zizmor
               pkgs.editorconfig-checker
               pkgs.python3Packages.pre-commit-hooks
             ]

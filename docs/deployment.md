@@ -1,7 +1,42 @@
 # Local Worker and deployment preparation
 
-The game targets Cloudflare Workers and Durable Objects.
-This task runs locally. No Cloudflare account or public deployment exists from this work.
+The game uses Cloudflare Workers and Durable Objects.
+Production uses `https://snake-arena.jayson.com.br`.
+The public source repository is `https://github.com/jaysonsantos/snake-arena`.
+
+## Build and deploy on push
+
+Every push to `main` starts `.github/workflows/deploy.yml`.
+The workflow installs the Nix tools, checks the rules, and runs `scripts/deploy.sh`.
+The script selects `wrangler deploy --env production` from the pinned Workers shell.
+Wrangler runs the configured `scripts/build.sh` command before upload.
+That command compiles both the beni page and the beni Worker.
+The production environment declares the custom domain and the `ARENAS` binding.
+Its compatibility date stays separate from the older local test runtime.
+
+Set these repository secrets:
+
+| Secret | Purpose |
+|---|---|
+| `CLOUDFLARE_ACCOUNT_ID` | Select the deployment account |
+| `CLOUDFLARE_API_TOKEN` | Deploy the Worker and its custom domain |
+
+Use the Edit Cloudflare Workers token template. Scope it to the deployment account and the `jayson.com.br` zone.
+A local OAuth login expires. Use a permanent API token for unattended builds.
+Keep the token in GitHub Actions secrets. Keep its value out of source and logs.
+
+The workflow also permits a manual run from the Actions tab.
+It serializes production deployments, so two pushes cannot deploy at the same time.
+The main CI workflow keeps the known client-close failure visible.
+The deploy workflow checks the rules and builds the current source before upload.
+
+## Branch previews
+
+A current Wrangler release supports `wrangler preview`.
+The root `previews` block declares `ARENAS` because the game reads that binding from its environment.
+Cloudflare gives each preview its own object namespace and storage.
+Static assets and class migrations stay at the top level.
+See [Preview resource isolation](https://developers.cloudflare.com/workers/previews/resources/).
 
 ## Local configuration
 
@@ -74,9 +109,9 @@ Before deployment, set an arena-wide write budget and an upgrade admission limit
 Check the reconnect write rate against the selected account's storage quotas and costs.
 Keep this requirement in the deployment task. The normal-play measurement does not cover reconnect abuse.
 
-## Owner answers before deployment
+## Production operations
 
-1. Select a Cloudflare account and hostname.
+1. Set the repository deployment secrets for the selected Cloudflare account.
 2. Set a production compatibility date of `2026-10-01` or later with a current runtime.
 3. Check the account's Durable Object limits and costs.
 4. Check a deployment bundle and reconnect behavior in that target environment.
@@ -86,8 +121,7 @@ The compiler will reject a tick that waits through `sync_boundary`.
 The game already uses a pure selector that never waits.
 The `Object.define` call needs no change.
 
-This repository contains no deployment or release script.
-Do not publish it during this task.
+The deployment script builds through Wrangler before upload. No version release script exists.
 
 ## Assessed alternative: celld
 

@@ -18,7 +18,10 @@
 - Keep the arena preview visibly separate from live multiplayer.
 - Keep project instructions in `AGENTS.md`.
 - Use small commits with Conventional Commits messages.
-- Do not add a remote, push commits, create a repository, or deploy the game.
+- Keep the GitHub repository public at `jaysonsantos/snake-arena`.
+- Use the production Wrangler environment for `snake-arena.jayson.com.br`.
+- Keep deploy credentials in GitHub Actions secrets.
+- Deploy main through `.github/workflows/deploy.yml`.
 - Bind each test server to `127.0.0.1`. Stop it after the test.
 - Do not change the beni compiler sources.
 - Keep build output and scratch files in the project. Do not use `/tmp`.
@@ -28,8 +31,7 @@
 - Before you kill a PID, check its full command and confirm that this task owns it.
 - Write chat output and durable prose in ASD-STE100 Simplified Technical English.
 
-The task contract is `/home/jayson/.local/state/beni-dispatch/snake-arena-prompt.md`.
-Read it in full before work.
+Build and deployment instructions are in `README.md` and `docs/deployment.md`.
 
 ## Paths
 
@@ -55,4 +57,5 @@ Read it in full before work.
 - Run rule, local Worker, and browser checks: `scripts/test.sh`.
 - Run both checks: `scripts/all.sh`.
 - Package the static page: `nix build`.
-- Do not release or deploy during this task.
+- Deploy production: `scripts/deploy.sh`.
+- Preview a build: `wrangler preview` with a current Wrangler release.

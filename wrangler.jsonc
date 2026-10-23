@@ -2,15 +2,68 @@
   "name": "snake-arena",
   "main": "build/worker/_worker.mjs",
   "compatibility_date": "2026-05-18",
-  "compatibility_flags": ["enable_request_signal"],
+  "compatibility_flags": [
+    "enable_request_signal"
+  ],
   "durable_objects": {
-    "bindings": [{ "name": "ARENAS", "class_name": "Arena" }]
+    "bindings": [
+      {
+        "name": "ARENAS",
+        "class_name": "Arena"
+      }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Arena"] }],
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "Arena"
+      ]
+    }
+  ],
   "assets": {
     "directory": "build/page",
     "binding": "ASSETS",
-    "run_worker_first": ["/arena/*", "/health"]
+    "run_worker_first": [
+      "/arena/*",
+      "/health"
+    ]
   },
-  "dev": { "ip": "127.0.0.1", "port": 4173 }
+  "dev": {
+    "ip": "127.0.0.1",
+    "port": 4173
+  },
+  "previews": {
+    "durable_objects": {
+      "bindings": [
+        {
+          "name": "ARENAS",
+          "class_name": "Arena"
+        }
+      ]
+    }
+  },
+  "build": {
+    "command": "scripts/build.sh"
+  },
+  "env": {
+    "production": {
+      "name": "snake-arena",
+      "compatibility_date": "2026-10-23",
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "ARENAS",
+            "class_name": "Arena"
+          }
+        ]
+      },
+      "routes": [
+        {
+          "pattern": "snake-arena.jayson.com.br",
+          "custom_domain": true
+        }
+      ]
+    }
+  }
 }

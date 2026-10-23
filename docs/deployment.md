@@ -42,6 +42,7 @@ Stop the command with Ctrl-C after a check.
 - The checkpoint keeps the complete game state and both PCG seed words.
 - Inputs, snapshots, and checkpoints use the same Color schema from `game/Palette.beni`.
 - Each color carries a name, such as `{"name":"moss"}`.
+- An unused new arena stores no checkpoint. Its first accepted join stores one.
 - Restore removes players whose sockets no longer exist.
 - An invalid checkpoint logs a warning, starts a new game, and writes a replacement checkpoint.
 - A failed checkpoint write stops the arena and closes its sockets.
@@ -56,6 +57,22 @@ The current checkpoint key is `arena:v2`. Change its version whenever the stored
 New games use `Clock.now` as the PCG seed. Restored games keep their saved seed.
 Beni PR #819 makes the platform answer peer closes before the game handler runs.
 The current pin lacks that fix. The game handler removes the departed player and keeps the failed close check.
+
+## Storage write limit for deployment
+
+The local full-arena probe measured 808 writes in 850.1 seconds, or 0.95 writes per second.
+The host ran at 18.98 ticks per second. Every checkpoint gap was 20 ticks.
+Each checkpoint contained about 24,560 characters. This probe measured normal play with 16 players.
+
+A reconnect loop has a different limit. Each new socket gets a new player ID.
+A join writes once. Its leave writes once. Thus, each completed loop causes two writes.
+A rate of `R` loops per second causes about `2R` writes per second, plus periodic checkpoints.
+The per-socket join limit does not bound this rate across new sockets.
+The current implementation has no arena-wide limit for these writes.
+
+Before deployment, set an arena-wide write budget and an upgrade admission limit.
+Check the reconnect write rate against the selected account's storage quotas and costs.
+Keep this requirement in the deployment task. The normal-play measurement does not cover reconnect abuse.
 
 ## Owner answers before deployment
 

@@ -4,13 +4,16 @@ import Arena
 import Cmd exposing (Cmd)
 import Html exposing (Html)
 import Live
+import Names
 import Palette exposing (Color)
+import Random
 import Sub exposing (Sub)
 import Tea
 
 
 type alias Model =
     name : String
+    guestName : String
     color : Color.Type
     moving : Bool
     grid : Bool
@@ -37,6 +40,7 @@ nameLimit = 18
 init : ⊤ → Model × Cmd Msg
 init ⊤ =
     ( { name = ""
+      , guestName = Random.value Names.generator
       , color = Color.Moss
       , moving = True
       , grid = True
@@ -65,7 +69,8 @@ update msg model =
             ( { model | preview = not model.preview }, Cmd.none )
 
         EnterArena →
-            ( live, command ) = Live.start (playerName model.name) model.color model.live
+            ( live, command ) =
+                Live.start (Names.resolve model.name model.guestName) model.color model.live
             ( { model | live = live }, Cmd.map command "live-arena" LiveMsg )
         LiveMsg message →
             ( live, command ) = Live.update message model.live
@@ -153,17 +158,17 @@ view model =
                         {Arena.portrait model.color}
                     </div>
                     <div class="player-title">
-                        <h2>{playerName model.name}</h2><span>{Palette.name model.color}</span>
+                        <h2>{Names.resolve model.name model.guestName}</h2><span>{Palette.name model.color}</span>
                     </div>
                     <div class="name-field">
-                        <label for="player-name">Your name</label>
+                        <label for="player-name">Your name (optional)</label>
                         <input
                             id="player-name"
                             type="text"
                             value={model.name}
                             onInput={NameChanged}
                             maxlength={nameLimit}
-                            placeholder="Little trouble"
+                            placeholder={model.guestName}
                             autocomplete="off"
                         />
                     </div>
@@ -215,12 +220,6 @@ view model =
             <span>BUILT IN <strong>BENI</strong></span><span>JUST ONE MORE ROUND.</span><span>{if model.live.active then "LIVE · AUTHORITATIVE SERVER" else "PREVIEW · NO LIVE PLAYERS"}</span>
         </footer>
     </div>
-
-
-playerName : String → String
-playerName name =
-    cleaned = String.trim name
-    if String.isEmpty cleaned then "Little trouble" else cleaned
 
 
 boolText : Bool → String

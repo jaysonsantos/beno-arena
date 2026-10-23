@@ -61,7 +61,8 @@ env -u LD_LIBRARY_PATH "$browser" --headless --disable-gpu --no-sandbox \
   > .scratch/browser/page.html 2> .scratch/browser/chromium.log
 test -s .scratch/browser/desktop.png
 check_dom() {
-  grep -q 'Little trouble' "$1"
+  grep -Eq '<h2>[A-Za-z]+ [A-Za-z]+ [0-9]{4}</h2>' "$1"
+  grep -Eq 'placeholder="[A-Za-z]+ [A-Za-z]+ [0-9]{4}"' "$1"
   grep -q 'Choose Enter arena to connect.' "$1"
   grep -q 'snake-player' "$1"
   grep -q 'Enter arena' "$1"

@@ -24,7 +24,8 @@ scripts/dev.sh
 ```
 
 Open `http://127.0.0.1:4173` in two browser tabs.
-Choose a name and color in each tab. Choose **Enter arena**.
+Choose a color in each tab. Enter a name, or leave it empty for a random guest name.
+Choose **Enter arena**.
 Move the pointer, drag a finger, or use the arrow keys.
 Choose **Leave arena** to return to the preview.
 Press Ctrl-C in the terminal to stop the local Worker.

@@ -1,0 +1,30 @@
+import Names
+import Palette exposing (Color)
+import Protocol
+import Random.Pcg as Random
+
+
+pub checks : List (String × Bool)
+checks =
+    names = List.map (List.range 0 127) λseed →
+        (Random.step Names.generator (Random.initialSeed seed)).0
+    guest = Maybe.withDefault (List.head names) ""
+    [ ( "an empty name uses the random guest name", Names.resolve "" guest == guest )
+    , ( "a whitespace name uses the random guest name", Names.resolve "  \t\n " guest == guest )
+    , ( "a chosen name keeps its trimmed value", Names.resolve "  Jayson  " guest == "Jayson" )
+    , ( "every generated name passes the join protocol", List.all names validJoin )
+    , ( "different seeds vary the guest names", List.any names λname → name ≠ guest )
+    ]
+
+
+validJoin : String → Bool
+validJoin name =
+    case Protocol.Input.print (Protocol.Input.Join { name = name, color = Color.Moss }) of
+        Err _ →
+            False
+        Ok text →
+            case Protocol.readInput text of
+                Ok _ →
+                    True
+                Err _ →
+                    False

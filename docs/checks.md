@@ -7,8 +7,10 @@ No account operation or deployment ran.
 
 ## Rules and protocol
 
-`scripts/test-rules.sh` passed all 77 assertions.
+`scripts/test-rules.sh` passed all 82 assertions.
 The checks use fixed ticks and seeded PCG food.
+Guest-name checks cover empty input, whitespace, chosen names, protocol acceptance, and variation across seeds.
+Each page draws its guest name from the browser random seed and keeps it for later joins.
 They cover movement, turns, growth, collisions, death food, safe spawn, rejoin, scores, limits, schemas, checkpoints, camera bounds, and interpolation indexes.
 They also round-trip every Color through join input, snapshots, and checkpoints. Numeric colors fail.
 The review regressions force movement direction, the exact turn limit, score order and length, seed use, safe spawn, and collisions after movement.
@@ -16,7 +18,7 @@ They also check body clipping, dead snakes, name length, valid oversized JSON, r
 The final death forces a checkpoint before idle hibernation. Its regression restores the dead player and the terminal tick.
 All twelve requested rule and protocol mutants compiled and failed these assertions. Five session mutants also compiled and failed.
 The spawn fixture puts a tail across the first candidate. Its head stays in the opposite corner.
-The head-only spawn mutant R24 fails R21. All 77 checks pass when spawn checks all body segments.
+The head-only spawn mutant R24 fails R21. All rule checks pass when spawn checks all body segments.
 
 ## Worker and sockets
 
@@ -66,7 +68,7 @@ The game removes the departing player. [Beni PR #819](https://github.com/canassa
 The current compiler pin still lacks that fix. The close check requires code `1000` for Alice and `4001` for Carol.
 The failed assertion stays in the suite. The suite returns a failure result.
 The review ran lint, rule, Worker, browser, and benchmark commands separately.
-Lint, all 77 rule assertions, and the browser output checks passed.
+Lint, all 82 rule assertions, and the browser output checks passed.
 The Worker command returned `1` for the close defect after both modes ran.
 The suite entrypoint also continues to browser checks after a failed Worker assertion.
 

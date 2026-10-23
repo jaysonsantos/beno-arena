@@ -1,0 +1,18 @@
+--! Guest names use the platform's random seed. A chosen name keeps its value.
+
+import Random.Pcg as Random
+
+
+pub generator : Random.Generator String
+generator =
+    Random.map3
+        (Random.uniform "Moss" [ "Tiny", "Swift", "Cosmic", "Sunny", "Wavy", "Fuzzy", "Lucky" ])
+        (Random.uniform "Cobra" [ "Viper", "Python", "Mamba", "Noodle", "Snake", "Worm", "Sprout" ])
+        (Random.int 1000 9999)
+        λadjective animal number → "${adjective} ${animal} ${number}"
+
+
+pub resolve : String, String → String
+resolve chosen guest =
+    cleaned = String.trim chosen
+    if String.isEmpty cleaned then guest else cleaned

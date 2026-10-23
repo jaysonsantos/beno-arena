@@ -36,6 +36,7 @@ Stop the command with Ctrl-C after a check.
 - Each tick sends snapshots before any checkpoint write.
 - Every 20 ticks, or one second of simulation, the object stores a schema checkpoint.
 - A join or disconnect stores a checkpoint only when it changes the game state.
+- The last death also stores a checkpoint before the arena stops its timer and can hibernate.
 - A crash can lose at most one second of simulation after the last successful checkpoint.
 - The storage output gate still holds outgoing messages on a checkpoint tick until the write becomes durable.
 - The checkpoint keeps the complete game state and both PCG seed words.

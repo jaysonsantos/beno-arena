@@ -64,6 +64,14 @@ checks =
     applied = Session.step lastAim
     nineteen = advance ready 19
     twenty = Session.step nineteen
+    wall =
+        { origin
+            | body = [ { x = Game.width - Game.radius, y = 100 } ]
+            , target = { x = Game.width, y = 100 }
+        }
+    terminal = Session.step (Session.saved (Session.init { base | players = [ wall ] }))
+    ( terminalRestore, _ ) =
+        Session.restore 123 (Ok (Just (Protocol.checkpoint terminal.game))) [ "one" ]
     checkpoint = Protocol.checkpoint savedGame
     ( restored, resetGood ) = Session.restore 123 (Ok (Just checkpoint)) [ "one" ]
     ( stale, _ ) = Session.restore 123 (Ok (Just checkpoint)) []
@@ -123,6 +131,13 @@ checks =
       )
     , ( "a saved checkpoint resets its interval"
       , not (Session.checkpointDue (Session.saved twenty))
+      )
+    , ( "the last death checkpoints before the arena sleeps"
+      , terminal.game.tick == 1
+          && Session.checkpointDue terminal
+          && not (Session.checkpointDue (Session.saved terminal))
+          && not (first terminalRestore.game).alive
+          && terminalRestore.game.tick == 1
       )
     , ( "a leave changes the stored game", Session.changed joined (Session.leave joined "two") )
     , ( "an absent player's leave does not change the stored game"

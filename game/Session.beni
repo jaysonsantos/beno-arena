@@ -96,7 +96,11 @@ changed before after = Protocol.checkpoint before.game ≠ Protocol.checkpoint a
 
 
 pub checkpointDue : State → Bool
-checkpointDue state = state.dirty && state.game.tick - state.checkpointTick ≥ checkpointTicks
+checkpointDue state =
+    state.dirty
+        && (state.game.tick - state.checkpointTick ≥ checkpointTicks
+               || not (List.any state.game.players .alive)
+           )
 
 
 pub saved : State → State

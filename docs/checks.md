@@ -7,13 +7,14 @@ No account operation or deployment ran.
 
 ## Rules and protocol
 
-`scripts/test-rules.sh` passed all 75 assertions.
+`scripts/test-rules.sh` passed all 76 assertions.
 The checks use fixed ticks and seeded PCG food.
 They cover movement, turns, growth, collisions, death food, safe spawn, rejoin, scores, limits, schemas, checkpoints, camera bounds, and interpolation indexes.
 They also round-trip every Color through join input, snapshots, and checkpoints. Numeric colors fail.
 The review regressions force movement direction, the exact turn limit, score order and length, seed use, safe spawn, and collisions after movement.
 They also check body clipping, dead snakes, name length, valid oversized JSON, restored ticks, join limits, aim coalescing, recovery, and checkpoint cadence.
-All twelve requested rule and protocol mutants compiled and failed these assertions. Four session mutants also compiled and failed.
+The final death forces a checkpoint before idle hibernation. Its regression restores the dead player and the terminal tick.
+All twelve requested rule and protocol mutants compiled and failed these assertions. Five session mutants also compiled and failed.
 
 ## Worker and sockets
 
@@ -38,7 +39,7 @@ The game removes the departing player. [Beni PR #819](https://github.com/canassa
 The current compiler pin still lacks that fix. The close check requires code `1000` for Alice and `4001` for Carol.
 The failed assertion stays in the suite. The suite returns a failure result.
 The review ran lint, rule, Worker, browser, and benchmark commands separately.
-Lint, all 75 rule assertions, and the browser output checks passed.
+Lint, all 76 rule assertions, and the browser output checks passed.
 The Worker command returned `1` for the close defect after both modes ran.
 The suite entrypoint also continues to browser checks after a failed Worker assertion.
 

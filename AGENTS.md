@@ -13,6 +13,7 @@
 - Use the pinned beni revision's Workers tools shell. Do not add a second tools pin.
 - Check every client input with the shared schema.
 - Change the checkpoint key version when the stored schema shape changes.
+- Save dirty state before an arena becomes idle.
 - Do not use `wrangler dev --remote`.
 - Keep the arena preview visibly separate from live multiplayer.
 - Keep project instructions in `AGENTS.md`.

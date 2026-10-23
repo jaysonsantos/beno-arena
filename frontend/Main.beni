@@ -112,6 +112,7 @@ view model =
                                                 } <span class="edition">/ 001</span>
                 </div>
             </section>
+            {if model.help then guide else <span />}
             <div class={if model.preview then "game-layout wide-preview" else "game-layout"}>
                 <section class="arena-section" aria-label="Arena preview">
                     {if model.live.active then
@@ -204,7 +205,6 @@ view model =
                     </div>
                 </aside>
             </div>
-            {if model.help then guide else <span />}
             <section class="rules-strip" aria-label="Game rules">
                 {rule "01" "Follow your appetite." "Collect food to grow your snake." "food-icon"}
                 {rule
@@ -245,7 +245,8 @@ guide =
             Eat food to grow. If your head touches another snake, your run ends.
         </p>
         <p>
-            Choose a name and color. Enter arena connects to the local Worker. The preview remains an illustration.
+            Choose a color and enter the arena. Add a name or use your random guest name.
+            The preview is an illustration.
         </p>
         <button class="help-button" onClick={ToggleHelp}>
             Got it <span aria-hidden="true">✓</span>

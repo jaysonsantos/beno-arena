@@ -172,7 +172,7 @@ h1 > span { color: #7c8675; }
 .wide-preview { grid-template-columns: minmax(0, 1fr); }
 .wide-preview .lobby { display: none; }
 .wide-preview .arena, .wide-preview .arena-art { max-height: 650px; }
-.guide { margin-top: 24px; padding: 25px; border: 1px solid #c7cebd; border-radius: 8px; background: #e4e9db; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.guide { margin-bottom: 24px; padding: 25px; border: 1px solid #c7cebd; border-radius: 8px; background: #e4e9db; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .guide h2 { font: 500 22px "Space Grotesk", sans-serif; letter-spacing: -0.7px; margin-top: 8px; }
 .guide > p { max-width: 520px; font-size: 13px; line-height: 1.7; color: #617055; }
 .guide .help-button { justify-self: end; align-self: end; }

@@ -5,6 +5,7 @@ import Palette exposing (Color)
 import Protocol
 import Review
 import Rules as Game
+import SelfCollisionChecks
 import ViewportChecks
 
 
@@ -325,6 +326,7 @@ main =
         , test45
         , test46
         , …NameChecks.checks
+        , …SelfCollisionChecks.checks
         , …Review.checks
         , …ViewportChecks.checks
         ]

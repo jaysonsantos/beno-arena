@@ -68,6 +68,11 @@ pub radius : Float
 radius = 10
 
 
+selfBodyStart : Int
+-- Adjacent samples overlap, so the head skips its own neck.
+selfBodyStart = ceiling (2 * radius / speed)
+
+
 turnLimit : Float
 turnLimit = 0.22
 
@@ -203,6 +208,8 @@ collided p players =
         || position.x > width - radius
         || position.y < radius
         || position.y > height - radius
+        || List.any (List.drop p.body selfBodyStart) λpart →
+            distanceSquared position part < (2 * radius) ^ 2
         || List.any players λother →
             other.id ≠ p.id
                 && other.alive

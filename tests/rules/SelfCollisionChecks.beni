@@ -1,0 +1,68 @@
+--! A closed turn must collide with its own older body samples.
+
+import Palette exposing (Color)
+import Rules as Game
+
+
+pub checks : List (String × Bool)
+checks =
+    base = Game.init 42
+    result = Game.step { base | players = [ loop ] }
+    snake = Maybe.withDefault (Game.player result "self") loop
+    straight = Game.join base "self" "Straight" Color.Sky
+    neck = Game.step straight
+    turned = turn straight 20
+    tail =
+        { loop
+            | body =
+                [ { x = 200, y = 200 }
+                , { x = 194, y = 200 }
+                , { x = 188, y = 200 }
+                , { x = 182, y = 200 }
+                , { x = 206, y = 200 }
+                ]
+            , length = 5
+        }
+    vacated = Game.step { base | players = [ tail ] }
+    corpseHead = Game.head snake
+    drops = List.length (List.filter result.food λpoint → point == corpseHead)
+    laterDrops = List.length (List.filter (Game.step result).food λpoint → point == corpseHead)
+    [ ( "a head that touches its own body dies", not snake.alive )
+    , ( "adjacent neck samples do not kill a new snake", (first neck).alive )
+    , ( "tight turns do not collide with the adjacent neck", (first turned).alive )
+    , ( "a head can enter the position its tail just left", (first vacated).alive )
+    , ( "a self-collision drops its body only once", drops == 1 && laterDrops == 1 )
+    ]
+
+
+first : Game.State → Game.Player
+first state = Maybe.withDefault (Game.player state "self") { loop | alive = False }
+
+
+turn : Game.State, Int → Game.State
+turn state remaining =
+    if remaining ≤ 0 then
+        state
+    else
+        snake = first state
+        position = Game.head snake
+        angle = snake.angle + pi / 2
+        target = { x = position.x + 100 * cos angle, y = position.y + 100 * sin angle }
+        turn (Game.step (Game.aim state "self" target)) (remaining - 1)
+
+
+loop : Game.Player
+loop =
+    bendRadius = 30
+    body = List.initialize 30 λindex →
+        phase = toFloat index * Game.speed / bendRadius
+        { x = 200 - bendRadius * sin phase, y = 230 - bendRadius * cos phase }
+    { id = "self"
+    , name = "Loop"
+    , color = Color.Moss
+    , body = body
+    , angle = 0
+    , target = { x = Game.width, y = 200 }
+    , length = List.length body
+    , alive = True
+    }

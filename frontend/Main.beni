@@ -229,7 +229,7 @@ view model =
                 {rule
                     "02"
                     "Keep your head clear."
-                    "Touch another snake's body and you are out."
+                    "Touch any snake's body, including your own, and you are out."
                     "turn-icon"
                 }
                 {rule "03" "Make a comeback." "Fallen snakes become food. Join again." "loop-icon"}
@@ -261,7 +261,7 @@ guide =
         <div><p class="eyebrow">THE SHORT VERSION</p><h2>Aim for food. Avoid the bodies.</h2></div>
         <p>
             In the arena, move the mouse or drag a finger to steer. Your snake moves all the time.
-            Eat food to grow. If your head touches another snake, your run ends.
+            Eat food to grow. If your head touches a body, including your own, your run ends.
         </p>
         <p>
             Choose a color and enter the arena. Add a name or use your random guest name.

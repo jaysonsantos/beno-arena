@@ -3,13 +3,14 @@
 Date: `2026-10-23`.
 Compiler source: `ab70761e3546db04a5daeffdc82a554e38d30f19`.
 The project uses the Workers tools from that same revision.
-No account operation or deployment ran.
+The local test commands need no Cloudflare account.
 
 ## Rules and protocol
 
-`scripts/test-rules.sh` passed all 82 assertions.
+`scripts/test-rules.sh` passed all 87 assertions.
 The checks use fixed ticks and seeded PCG food.
 Guest-name checks cover empty input, whitespace, chosen names, protocol acceptance, and variation across seeds.
+Self-collision checks cover body contact, safe neck samples, tight turns, the vacated tail, and one corpse drop.
 Each page draws its guest name from the browser random seed and keeps it for later joins.
 They cover movement, turns, growth, collisions, death food, safe spawn, rejoin, scores, limits, schemas, checkpoints, camera bounds, and interpolation indexes.
 They also round-trip every Color through join input, snapshots, and checkpoints. Numeric colors fail.

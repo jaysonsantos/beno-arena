@@ -5,7 +5,7 @@ Play at [beno-arena.jayson.com.br](https://beno-arena.jayson.com.br).
 One Cloudflare Durable Object owns each arena.
 The browser sends input and draws interpolated SVG snapshots from the server.
 
-Eat food to grow. Avoid other snakes and the arena wall.
+Eat food to grow. Avoid all snake bodies, including your own, and the arena wall.
 A dead snake becomes food. Choose **Enter arena** to join again.
 The score list shows the five longest live snakes.
 The initial arena remains a separate illustration until you connect.

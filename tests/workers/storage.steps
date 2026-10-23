@@ -87,5 +87,5 @@
 {"receive":"meter"}
 {"method":"POST","path":"/arena/cadence/__beni/tick"}
 {"receive":"meter"}
-{"close":"meter","code":1000,"reason":"done"}
+{"close":"meter","code":1000,"reason":"done","until":"\"arena\":\"cadence\",\"kind\":\"write\",\"tick\":20,\"players\":0"}
 {"receive":"meter"}

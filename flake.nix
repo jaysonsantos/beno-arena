@@ -4,7 +4,7 @@
   # Keep the compiler, Workers tools, and package set on one tested revision.
   inputs.nixpkgs.follows = "beni-src/nixpkgs";
   inputs.beni-src = {
-    url = "github:canassa/beni/ab70761e3546db04a5daeffdc82a554e38d30f19";
+    url = "github:canassa/beni/31d1025ac92c3a9383a1e355722ffac848910810";
   };
 
   outputs =

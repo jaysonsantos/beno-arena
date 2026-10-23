@@ -4,6 +4,8 @@ A small multiplayer snake game in beni.
 Play at [beno-arena.jayson.com.br](https://beno-arena.jayson.com.br).
 One Cloudflare Durable Object owns each arena.
 The browser sends input and draws interpolated SVG snapshots from the server.
+The client buffers 150 milliseconds of snapshots to absorb network gaps and packet bursts.
+Steering input still leaves the client on the next input tick.
 
 Eat food to grow. Avoid all snake bodies, including your own, and the arena wall.
 A dead snake becomes food. Choose **Enter arena** to join again.
@@ -85,9 +87,9 @@ The object retains each player's newest aim point and applies it on the next tic
 It accepts at most one join request per player per tick.
 The shared Color schema represents each color by name, such as `{"name":"moss"}`.
 
-The local checks currently fail on client close replies in the pinned beni platform.
-Both Worker build modes pass the other 18 socket assertions, 12 storage assertions, and six transcript-parser checks.
-See the [check results](docs/checks.md) and [beni issue #724](https://github.com/canassa/beni/issues/724#issuecomment-6352841942).
+The compiler pin includes the peer-close fix from [beni PR #819](https://github.com/canassa/beni/pull/819).
+The socket checks wait for each aim event before they advance a manual tick.
+See the [check results](docs/checks.md).
 
 | Path | Purpose |
 |---|---|
@@ -129,7 +131,7 @@ The API token needs the Edit Cloudflare Workers permissions for the deployment a
 For an authenticated local deployment, run `scripts/deploy.sh`.
 For a branch preview, run `wrangler preview` with a current Wrangler release.
 The preview uses a separate Durable Object namespace and storage.
-The CI test job keeps the known client-close failure visible. The deploy workflow checks the rules before deployment.
+The CI test job checks peer closes and input order. The deploy workflow checks the rules before deployment.
 See the [deployment notes](docs/deployment.md) and [capability evidence](docs/capabilities.md).
 
 The project uses the [MIT License](LICENSE).

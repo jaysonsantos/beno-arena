@@ -11,6 +11,7 @@ The workflow installs the Nix tools, checks the rules, and runs `scripts/deploy.
 The script selects `wrangler deploy --env production` from the pinned Workers shell.
 Wrangler runs the configured `scripts/build.sh` command before upload.
 That command compiles both the beni page and the beni Worker.
+The release page includes public source maps. Each map embeds its beni source.
 The production environment declares the custom domain and the `ARENAS` binding.
 Its compatibility date stays separate from the older local test runtime.
 
@@ -27,7 +28,7 @@ Keep the token in GitHub Actions secrets. Keep its value out of source and logs.
 
 The workflow also permits a manual run from the Actions tab.
 It serializes production deployments, so two pushes cannot deploy at the same time.
-The main CI workflow keeps the known client-close failure visible.
+The main CI workflow checks peer closes and input order.
 The deploy workflow checks the rules and builds the current source before upload.
 
 ## Branch previews
@@ -68,6 +69,9 @@ Stop the command with Ctrl-C after a check.
 - The selector returns no timer when the arena is idle.
 - Each tick sends one visible snapshot per socket.
 - Segment indexes keep interpolation stable when the camera clips a body.
+- The client keeps a 150 millisecond snapshot buffer and advances a separate playback clock.
+- Packet arrival does not reset that clock. Input sends do not wait for playback.
+- Playback resets after a respawn, a new player identity, or a long pause.
 - Each tick sends snapshots before any checkpoint write.
 - Every 20 ticks, or one second of simulation, the object stores a schema checkpoint.
 - A join or disconnect stores a checkpoint only when it changes the game state.
@@ -90,8 +94,8 @@ The game does not require RPC or an outgoing WebSocket from an object.
 The Color schema change precedes the first deployment. No stored production data needs conversion.
 The current checkpoint key is `arena:v2`. Change its version whenever the stored schema shape changes.
 New games use `Clock.now` as the PCG seed. Restored games keep their saved seed.
-Beni PR #819 makes the platform answer peer closes before the game handler runs.
-The current pin lacks that fix. The game handler removes the departed player and keeps the failed close check.
+The compiler pin includes the peer-close fix from beni PR #819.
+The platform answers peer closes before the game handler runs. The game handler removes the departed player.
 
 ## Storage write limit for deployment
 
@@ -132,6 +136,6 @@ Recommendation: keep Cloudflare as the first target.
 
 ## Evidence
 
-- [Pinned beni Cloudflare platform](https://github.com/canassa/beni/tree/ab70761e3546db04a5daeffdc82a554e38d30f19/platforms/cloudflare)
-- [Pinned beni Workers tools shell](https://github.com/canassa/beni/blob/ab70761e3546db04a5daeffdc82a554e38d30f19/flake.nix)
-- [Pinned platform design, section 9.12](https://github.com/canassa/beni/blob/ab70761e3546db04a5daeffdc82a554e38d30f19/docs/design/boundary.md)
+- [Pinned beni Cloudflare platform](https://github.com/canassa/beni/tree/31d1025ac92c3a9383a1e355722ffac848910810/platforms/cloudflare)
+- [Pinned beni Workers tools shell](https://github.com/canassa/beni/blob/31d1025ac92c3a9383a1e355722ffac848910810/flake.nix)
+- [Pinned platform design, section 9.12](https://github.com/canassa/beni/blob/31d1025ac92c3a9383a1e355722ffac848910810/docs/design/boundary.md)

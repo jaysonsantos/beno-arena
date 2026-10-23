@@ -1,11 +1,39 @@
 # Local check results
 
+## Current validation
+
+Date: `2026-10-23`.
+Compiler source: `31d1025ac92c3a9383a1e355722ffac848910810`.
+The project keeps the compiler and Workers tools on this one pin.
+It includes the peer-close fix from [beni PR #819](https://github.com/canassa/beni/pull/819).
+
+The rule suite passes 98 assertions. Eleven playback checks cover a 150 millisecond buffer, packet bursts, gaps, respawns, and clock recovery.
+A burst does not change the displayed position. Playback advances through a 160 millisecond packet gap.
+A slow server does not drain the buffer. Snapshot history stays bounded.
+
+Both Worker build modes pass all 19 socket assertions, 12 storage assertions, and six transcript-parser checks.
+The aim fixture waits for each server observer event before its manual tick.
+The storage fixture waits for the final zero-player checkpoint before teardown.
+The assertions still check the newest aim and the exact peer close codes.
+
+A 15-second local browser sample contains 1,800 movement intervals and no stationary interval.
+The earlier local sample contains 45 stationary intervals in the same interval count.
+Animation callback median stays at 8.3 milliseconds. The new sample contains no long browser task.
+The maximum head step decreases from 1.6 to 1.2 game units.
+ArrowUp sends an aim packet with `y = 0` while the delayed view runs.
+This comparison covers local play. It does not prove production behavior or input latency.
+The browser checks use the 150 millisecond playback buffer. Inputs keep their separate send timer.
+
+## Earlier validation
+
+The following record uses the previous compiler pin. Its close failure is historical.
+
 Date: `2026-10-23`.
 Compiler source: `ab70761e3546db04a5daeffdc82a554e38d30f19`.
 The project uses the Workers tools from that same revision.
 The local test commands need no Cloudflare account.
 
-## Rules and protocol
+### Rules and protocol
 
 `scripts/test-rules.sh` passed all 87 assertions.
 The checks use fixed ticks and seeded PCG food.
@@ -21,7 +49,7 @@ All twelve requested rule and protocol mutants compiled and failed these asserti
 The spawn fixture puts a tail across the first candidate. Its head stays in the opposite corner.
 The head-only spawn mutant R24 fails R21. All rule checks pass when spawn checks all body segments.
 
-## Worker and sockets
+### Worker and sockets
 
 `scripts/test-worker.sh` runs the unchanged upstream Miniflare driver.
 All listeners use `127.0.0.1`. The driver disposes each runtime after the check.
@@ -81,7 +109,7 @@ The project configuration keeps its original flags.
 Transcripts remain in `.scratch/workers/development.log` and `.scratch/workers/release.log`.
 Rerun `scripts/test-worker.sh` after the upstream fix and a compiler pin update.
 
-## Browser and frame measurements
+### Browser and frame measurements
 
 `scripts/test-browser.sh` checks generated module syntax and page assets.
 Chromium produces desktop `1440×1080` and mobile `390×1900` DOM dumps and screenshots.
@@ -111,7 +139,7 @@ These measurements describe this local trace. They do not measure mobile hardwar
 The trace and result remain in `.scratch/benchmark/trace.json` and `.scratch/benchmark/result.json`.
 Each browser check stops its owned local server after the check.
 
-## Packages
+### Packages
 
 `nix build .#frontend .#worker --max-jobs 1 --cores 2` passed.
 Both packages compile from the pinned beni source with Zorg.

@@ -22,6 +22,8 @@
 - Use the production Wrangler environment for `beno-arena.jayson.com.br`.
 - Keep deploy credentials in GitHub Actions secrets.
 - Deploy main through `.github/workflows/deploy.yml`.
+- Keep every required CI job in the `check` guard's `needs` list.
+- Keep `check` as the only required merge status.
 - Bind each test server to `127.0.0.1`. Stop it after the test.
 - Do not change the beni compiler sources.
 - Keep build output and scratch files in the project. Do not use `/tmp`.

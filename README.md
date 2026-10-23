@@ -95,6 +95,8 @@ See the [check results](docs/checks.md) and [beni issue #724](https://github.com
 Format the source with `beni fmt game server frontend tests`.
 Install commit hooks with `prek install`.
 CI runs the same scripts.
+The `check` guard waits for lint, tests, and build. Branch rules require that guard before a pull request can merge.
+Renovate enables automatic merge for minor, patch, pin, and digest updates after the guard passes.
 
 ## Package
 

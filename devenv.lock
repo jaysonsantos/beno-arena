@@ -7,17 +7,17 @@
         "zig-overlay": "zig-overlay"
       },
       "locked": {
-        "lastModified": 1792705594,
-        "narHash": "sha256-f1fbRDFdHexS0VlYEMnne766KOdXeVNPPMSbKOB0554=",
+        "lastModified": 1792749320,
+        "narHash": "sha256-WUOnVZOUuRxggbLrnddYxvk42m6mtUVVcyvvFlU1Ogc=",
         "owner": "canassa",
         "repo": "beni",
-        "rev": "ab70761e3546db04a5daeffdc82a554e38d30f19",
+        "rev": "ffc472d05beaf406f9fd8213bb02352364214610",
         "type": "github"
       },
       "original": {
         "owner": "canassa",
         "repo": "beni",
-        "rev": "ab70761e3546db04a5daeffdc82a554e38d30f19",
+        "rev": "ffc472d05beaf406f9fd8213bb02352364214610",
         "type": "github"
       }
     },
@@ -31,7 +31,6 @@
         ]
       },
       "locked": {
-        "ref": "refs/heads/main",
         "type": "git",
         "url": "file:."
       },

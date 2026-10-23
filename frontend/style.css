@@ -55,6 +55,10 @@ button svg { pointer-events: none; }
   font-size: 10px; font-weight: 600; letter-spacing: 1.6px;
 }
 .header-note { color: var(--muted); }
+.header-actions { display: flex; align-items: center; gap: 24px; }
+.repository-link { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; }
+.repository-link svg { width: 22px; height: 22px; }
+.repository-link:hover { color: #57863a; }
 .help-button {
   display: flex; gap: 24px; align-items: center; background: transparent;
   padding: 11px 0; border: 0; font-size: 13px; font-weight: 600;
@@ -203,6 +207,7 @@ h1 > span { color: #7c8675; }
   .brand > span { font-size: 17px; }
   .brand > svg { width: 27px; }
   .help-button { font-size: 11px; gap: 10px; }
+  .header-actions { gap: 8px; }
   .page-heading { padding: 26px 0 22px; display: block; }
   h1 { font-size: clamp(25px, 5.8vw, 38px); letter-spacing: -1.5px; }
   .build-tag { margin-top: 16px; font-size: 8px; }

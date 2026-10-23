@@ -13,7 +13,8 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     runHook preBuild
     export ZORG_GLOBAL_CACHE_DIR="$PWD/.zorg-cache"
-    zorg build -j2 --prefix "$out"
+    # Cached binaries must run on other machines of this architecture.
+    zorg build -j2 -Dcpu=baseline --prefix "$out"
     runHook postBuild
   '';
   dontInstall = true;

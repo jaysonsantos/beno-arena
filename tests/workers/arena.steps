@@ -13,8 +13,8 @@
 {"method":"POST","path":"/arena/test/__beni/tick"}
 {"receive":"alice"}
 {"receive":"bob"}
-{"send":"alice","text":"{\"kind\":\"aim\",\"x\":1600,\"y\":0}"}
-{"send":"alice","text":"{\"kind\":\"aim\",\"x\":0,\"y\":1000}"}
+{"send":"alice","text":"{\"kind\":\"aim\",\"x\":1600,\"y\":0}","until":"\"kind\":\"aim\""}
+{"send":"alice","text":"{\"kind\":\"aim\",\"x\":0,\"y\":1000}","until":"\"kind\":\"aim\""}
 {"method":"POST","path":"/arena/test/__beni/tick"}
 {"receive":"alice"}
 {"receive":"bob"}

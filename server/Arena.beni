@@ -131,7 +131,9 @@ input observer ctx state socket text =
                                 ⊤
                         next
                     Protocol.Input.Aim point →
-                        Session.aim state id point
+                        next = Session.aim state id point
+                        observer.event ctx "aim" next.game
+                        next
 
 
 step : Observer, Object.Context String, State → State

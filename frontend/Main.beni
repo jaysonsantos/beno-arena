@@ -81,7 +81,7 @@ view : Model → Html Msg
 view model =
     <div class="site-shell" style={Palette.variables}>
         <header class="site-header">
-            <a class="brand" href="/" aria-label="Snake Arena home">
+            <a class="brand" href="/" aria-label="Beno Arena home">
                 <svg viewBox="0 0 40 40" aria-hidden="true">
                     <path
                         d="M 8 30 L 23 30 C 35 30 35 18 23 18 L 16 18 C 5 18 5 6 16 6 L 31 6"
@@ -92,7 +92,7 @@ view model =
                     />
                     <circle cx="30" cy="4" r="1.4" fill="#eff0e8" />
                 </svg>
-                <span>SNAKE<span class="brand-light">ARENA</span></span>
+                <span>BENO<span class="brand-light">ARENA</span></span>
             </a>
             <span class="header-note">A SMALL GAME. A BIG APPETITE.</span>
             <button class="help-button" onClick={ToggleHelp} aria-expanded={boolText model.help}>

@@ -1,5 +1,5 @@
 {
-  "name": "snake-arena-rules-tests",
+  "name": "beno-arena-rules-tests",
   "build": {
     "platform": "node",
     "paths": ["../../game", "."],

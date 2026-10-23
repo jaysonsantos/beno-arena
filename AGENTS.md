@@ -1,4 +1,4 @@
-# Snake Arena
+# Beno Arena
 
 - Write all game code in beni.
 - Do not write TypeScript or JavaScript.
@@ -18,8 +18,8 @@
 - Keep the arena preview visibly separate from live multiplayer.
 - Keep project instructions in `AGENTS.md`.
 - Use small commits with Conventional Commits messages.
-- Keep the GitHub repository public at `jaysonsantos/snake-arena`.
-- Use the production Wrangler environment for `snake-arena.jayson.com.br`.
+- Keep the GitHub repository public at `jaysonsantos/beno-arena`.
+- Use the production Wrangler environment for `beno-arena.jayson.com.br`.
 - Keep deploy credentials in GitHub Actions secrets.
 - Deploy main through `.github/workflows/deploy.yml`.
 - Bind each test server to `127.0.0.1`. Stop it after the test.

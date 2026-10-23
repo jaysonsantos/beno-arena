@@ -1,5 +1,5 @@
 {
-  "name": "snake-arena-worker",
+  "name": "beno-arena-worker",
   "build": {
     "platform": "cloudflare",
     "paths": ["../game", "."],

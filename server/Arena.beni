@@ -219,7 +219,7 @@ route ctx request =
                     Nothing →
                         Worker.text 503 "The ARENAS binding is absent."
         [ "", "health" ] →
-            Worker.text 200 "Snake Arena is ready."
+            Worker.text 200 "Beno Arena is ready."
         _ →
             case Worker.service (Worker.env ctx) "ASSETS" of
                 Just assets →

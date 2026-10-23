@@ -1,5 +1,5 @@
 {
-  description = "Snake Arena: a beni browser frontend and Zorg-built compiler";
+  description = "Beno Arena: a beni browser frontend and Zorg-built compiler";
 
   # Keep the compiler, Workers tools, and package set on one tested revision.
   inputs.nixpkgs.follows = "beni-src/nixpkgs";
@@ -40,7 +40,7 @@
         let
           inherit (tools system) pkgs zorg beni;
           frontend = pkgs.stdenvNoCC.mkDerivation {
-            pname = "snake-arena-frontend";
+            pname = "beno-arena-frontend";
             version = "0.0.0";
             src = pkgs.lib.fileset.toSource {
               root = ./.;
@@ -55,7 +55,7 @@
             dontConfigure = true;
             buildPhase = ''
               runHook preBuild
-              export SNAKE_TOOLCHAIN=1
+              export BENO_TOOLCHAIN=1
               export XDG_CACHE_HOME="$PWD/.scratch/cache"
               bash scripts/build-page.sh
               runHook postBuild
@@ -68,7 +68,7 @@
             '';
           };
           worker = pkgs.stdenvNoCC.mkDerivation {
-            pname = "snake-arena-worker";
+            pname = "beno-arena-worker";
             version = "0.0.0";
             src = pkgs.lib.fileset.toSource {
               root = ./.;
@@ -82,7 +82,7 @@
             dontConfigure = true;
             buildPhase = ''
               runHook preBuild
-              export SNAKE_TOOLCHAIN=1
+              export BENO_TOOLCHAIN=1
               bash scripts/build-worker.sh
               runHook postBuild
             '';
@@ -132,7 +132,7 @@
             ]
             ++ pkgs.lib.optionals pkgs.stdenv.isLinux [ pkgs.chromium ];
             shellHook = ''
-              export SNAKE_TOOLCHAIN=1
+              export BENO_TOOLCHAIN=1
               export BENI_SOURCE="${beni-src}"
               export TMPDIR="$PWD/.scratch/tmp"
               export PREK_HOME="$PWD/.scratch/prek"

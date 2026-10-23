@@ -1,5 +1,5 @@
 {
-  "name": "snake-arena-worker-trace",
+  "name": "beno-arena-worker-trace",
   "build": {
     "platform": "cloudflare",
     "paths": ["../../game", "../../server/Arena.beni", "../support", "."],

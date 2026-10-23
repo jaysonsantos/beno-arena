@@ -1,5 +1,5 @@
 {
-  "name": "snake-arena",
+  "name": "beno-arena",
   "build": {
     "platform": "browser-tea",
     "paths": ["frontend", "game"],

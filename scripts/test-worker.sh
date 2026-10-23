@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-if [[ "${SNAKE_TOOLCHAIN:-}" != "1" || -z "${BENI_MINIFLARE:-}" ]]; then
+if [[ "${BENO_TOOLCHAIN:-}" != "1" || -z "${BENI_MINIFLARE:-}" ]]; then
   exec nix develop .#workers --command bash scripts/test-worker.sh "$@"
 fi
 : "${BENI_MINIFLARE:?Enter the workers development shell.}"

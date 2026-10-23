@@ -1,8 +1,8 @@
 # Local Worker and deployment preparation
 
 The game uses Cloudflare Workers and Durable Objects.
-Production uses `https://snake-arena.jayson.com.br`.
-The public source repository is `https://github.com/jaysonsantos/snake-arena`.
+Production uses `https://beno-arena.jayson.com.br`.
+The public source repository is `https://github.com/jaysonsantos/beno-arena`.
 
 ## Build and deploy on push
 

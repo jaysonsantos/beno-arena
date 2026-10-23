@@ -1,5 +1,5 @@
 {
-  "name": "snake-arena",
+  "name": "beno-arena",
   "main": "build/worker/_worker.mjs",
   "compatibility_date": "2026-05-18",
   "compatibility_flags": [
@@ -48,7 +48,7 @@
   },
   "env": {
     "production": {
-      "name": "snake-arena",
+      "name": "beno-arena",
       "compatibility_date": "2026-10-23",
       "durable_objects": {
         "bindings": [
@@ -60,7 +60,7 @@
       },
       "routes": [
         {
-          "pattern": "snake-arena.jayson.com.br",
+          "pattern": "beno-arena.jayson.com.br",
           "custom_domain": true
         }
       ]

@@ -1,5 +1,5 @@
 {
-  "name": "snake-arena-render-benchmark",
+  "name": "beno-arena-render-benchmark",
   "build": {
     "platform": "browser-tea",
     "paths": [

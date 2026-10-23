@@ -1,7 +1,7 @@
-# Snake Arena
+# Beno Arena
 
 A small multiplayer snake game in beni.
-Play at [snake-arena.jayson.com.br](https://snake-arena.jayson.com.br).
+Play at [beno-arena.jayson.com.br](https://beno-arena.jayson.com.br).
 One Cloudflare Durable Object owns each arena.
 The browser sends input and draws interpolated SVG snapshots from the server.
 
@@ -10,7 +10,7 @@ A dead snake becomes food. Choose **Enter arena** to join again.
 The score list shows the five longest live snakes.
 The initial arena remains a separate illustration until you connect.
 
-![Snake Arena lobby with a separate arena preview and player controls.](docs/screenshot.png)
+![Beno Arena lobby with a separate arena preview and player controls.](docs/screenshot.png)
 
 All game source and test assertions use beni.
 The compiler produces JavaScript. Do not edit that output.
@@ -39,7 +39,7 @@ The command uses local workerd. It needs no Cloudflare account.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `SNAKE_PORT` | `4173` | Local Worker port |
+| `BENO_PORT` | `4173` | Local Worker port |
 | `CHROMIUM_PATH` | `chromium` | Browser binary for render checks |
 
 The browser uses `/arena/main/ws`.
@@ -112,7 +112,7 @@ There is no version release command.
 Every push to `main` runs `.github/workflows/deploy.yml`.
 The workflow checks the rules and runs `scripts/deploy.sh` with the pinned Workers tools.
 Wrangler runs `scripts/build.sh` before it uploads the page and Worker.
-The production environment uses `snake-arena.jayson.com.br` and its own compatibility date.
+The production environment uses `beno-arena.jayson.com.br` and its own compatibility date.
 Set the `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` repository secrets before the first workflow deployment.
 The API token needs the Edit Cloudflare Workers permissions for the deployment account and domain.
 

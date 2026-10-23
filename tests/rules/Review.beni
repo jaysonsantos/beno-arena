@@ -22,7 +22,26 @@ checks =
         }
     probe = Game.join base "probe" "Probe" Color.Moss
     candidate = first probe
-    blocked = { base | players = [ { candidate | id = "blocker" } ] }
+    candidateHead = Game.head candidate
+    blocker =
+        { candidate
+            | id = "blocker"
+            , body =
+                [ { x =
+                      if candidateHead.x < Game.width / 2 then
+                          Game.width - Game.radius
+                      else
+                          Game.radius
+                  , y =
+                      if candidateHead.y < Game.height / 2 then
+                          Game.height - Game.radius
+                      else
+                          Game.radius
+                  }
+                , …candidate.body
+                ]
+        }
+    blocked = { base | players = [ blocker ] }
     spawned = Game.join blocked "new" "New" Color.Sky
     newcomer = Maybe.withDefault (Game.player spawned "new") origin
     moving =
@@ -100,8 +119,7 @@ checks =
       , newcomer.id == "new"
           && newcomer.alive
           && List.all newcomer.body λpart →
-              List.all candidate.body λother →
-                  Game.distanceSquared part other ≥ (2 * Game.radius) ^ 2
+              List.all blocker.body λother → Game.distanceSquared part other ≥ (2 * Game.radius) ^ 2
       )
     , ( "R22 collisions use both snakes' new positions"
       , List.all (Game.step moving).players λp → not p.alive

@@ -52,10 +52,17 @@ The `.envrc` file stays local:
 
 ```sh
 dotenv_if_exists
-use flake
+use devenv
 ```
 
 After you read that file, run `direnv allow`.
+You can also run `devenv shell`.
+The devenv shell contains the `workers` shell from the flake.
+It pulls beni and Zorg from the `jaysonsantos` Cachix cache.
+When `CACHIX_AUTH_TOKEN` is set, it pushes new builds to that cache.
+The flake keeps the only beni pin.
+
+You can also use `use flake` in `.envrc`.
 The default shell supports builds and lint. The `workers` shell also supports local Worker tests.
 
 ## Develop

@@ -1,0 +1,7 @@
+# Take the compiler, Workers tools, and package set from this flake.
+# The flake keeps the only beni pin.
+inputs:
+  beno:
+    url: git+file:.
+  nixpkgs:
+    follows: beno/nixpkgs

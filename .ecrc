@@ -9,6 +9,8 @@
     "\\.scratch/",
     "\\.direnv/",
     "\\.wrangler/",
-    "result"
+    "result",
+    "\\.devenv/",
+    "devenv\\.lock"
   ]
 }

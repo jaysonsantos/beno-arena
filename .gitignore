@@ -9,3 +9,5 @@ result
 .zorg-cache/
 .zig-cache/
 .wrangler/
+.devenv/
+.devenv.flake.nix

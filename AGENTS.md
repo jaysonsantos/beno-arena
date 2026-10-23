@@ -52,6 +52,7 @@ Build and deployment instructions are in `README.md` and `docs/deployment.md`.
 
 - Open the build tools: `nix develop`.
 - Open the local Worker tools: `nix develop .#workers`.
+- Open the cached Worker tools: `devenv shell`.
 - Build the compiler: `nix build .#beni`.
 - Build the page and Worker: `scripts/build.sh`.
 - Serve the page locally: `scripts/dev.sh`.

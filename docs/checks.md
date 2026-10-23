@@ -7,6 +7,9 @@ Compiler source: `ffc472d05beaf406f9fd8213bb02352364214610`.
 The project keeps the compiler and Workers tools on this one pin.
 It includes the peer-close fix from [beni PR #819](https://github.com/canassa/beni/pull/819).
 
+The Nix compiler build selects the target architecture's baseline CPU.
+Cached compilers do not depend on the build host's CPU features.
+
 The rule suite passes 98 assertions. Eleven playback checks cover a 150 millisecond buffer, packet bursts, gaps, respawns, and clock recovery.
 A burst does not change the displayed position. Playback advances through a 160 millisecond packet gap.
 A slow server does not drain the buffer. Snapshot history stays bounded.

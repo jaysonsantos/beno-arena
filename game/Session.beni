@@ -44,7 +44,7 @@ restore seed stored connected =
             cleaned = List.foldl stale game λp current → Game.leave current p.id
             ( { init cleaned | dirty = Protocol.checkpoint cleaned ≠ checkpoint }, False )
         Ok Nothing →
-            ( init (Game.init seed), False )
+            ( { init (Game.init seed) | dirty = False }, False )
         Err _ →
             ( init (Game.init seed), True )
 

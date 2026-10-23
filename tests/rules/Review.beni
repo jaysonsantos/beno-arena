@@ -93,6 +93,9 @@ checks =
       )
     , ( "R14 scores contain at most five snakes", List.length (Game.scores scoreboard) == 5 )
     , ( "R20 different seeds produce different food", base.food ≠ (Game.init 43).food )
+    , ( "a fresh arena waits for its first join before storage"
+      , not freshA.dirty && not freshB.dirty
+      )
     , ( "R21 spawn retries a blocked first candidate"
       , newcomer.id == "new"
           && newcomer.alive

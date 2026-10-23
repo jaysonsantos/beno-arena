@@ -2,6 +2,7 @@ import Interpolation
 import NameChecks
 import Node
 import Palette exposing (Color)
+import PlaybackChecks
 import Protocol
 import Review
 import Rules as Game
@@ -326,6 +327,7 @@ main =
         , test45
         , test46
         , …NameChecks.checks
+        , …PlaybackChecks.checks
         , …SelfCollisionChecks.checks
         , …Review.checks
         , …ViewportChecks.checks

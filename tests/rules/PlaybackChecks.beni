@@ -1,0 +1,94 @@
+import Palette exposing (Color)
+import Protocol
+import SnapshotBuffer
+
+
+pub checks : List (String × Bool)
+checks =
+    warm =
+        List.foldl (List.range 1 6) (SnapshotBuffer.receive (snapshot 0) SnapshotBuffer.init) λtick buffer →
+            SnapshotBuffer.receive (snapshot tick) (SnapshotBuffer.advance 50 buffer)
+    delayed = SnapshotBuffer.advance 140 warm
+    burst =
+        SnapshotBuffer.receive
+            (snapshot 9)
+            (SnapshotBuffer.receive (snapshot 8) (SnapshotBuffer.receive (snapshot 7) delayed))
+    steps = List.foldl (List.range 1 16) [ warm ] λ_ buffers →
+        List.push buffers (SnapshotBuffer.advance 10 (Maybe.withDefault (List.last buffers) warm))
+    positions = List.map steps headX
+    increasing = List.all (List.range 1 16) λindex →
+        Maybe.withDefault (List.get positions index) 0
+            > Maybe.withDefault (List.get positions (index - 1)) 0
+    changed = { snapshot 7 | you = "other", cameraX = 900 }
+    revived =
+        { snapshot 8
+            | snakes =
+                List.map (snapshot 8).snakes λsnake →
+                    { snake | body = [ { index = 0, x = 900, y = 100 } ] }
+        }
+    dead = { snapshot 7 | alive = False, snakes = [] }
+    restarted = SnapshotBuffer.receive revived (SnapshotBuffer.receive dead warm)
+    slow = List.foldl (List.range 7 1000) warm λtick buffer →
+        SnapshotBuffer.receive (snapshot tick) (SnapshotBuffer.advance 52 buffer)
+    slowLag = 6000 - headX slow
+    overflow = List.foldl (List.range 7 1000) warm λtick buffer →
+        SnapshotBuffer.receive (snapshot tick) buffer
+    [ ( "playback keeps 150 milliseconds of snapshots", near (headX warm) 18 )
+    , ( "a packet burst does not change the displayed position"
+      , near (headX delayed) (headX burst)
+      )
+    , ( "playback advances through a 160 millisecond packet gap", increasing )
+    , ( "old and duplicate snapshots do not change playback"
+      , SnapshotBuffer.receive (snapshot 5) warm == warm
+          && SnapshotBuffer.receive (snapshot 6) warm == warm
+      )
+    , ( "a different player resets the camera"
+      , near (cameraX (SnapshotBuffer.receive changed warm)) 900
+      )
+    , ( "a respawn never interpolates from the dead snake", near (headX restarted) 900 )
+    , ( "an empty buffer has no frame", SnapshotBuffer.frame SnapshotBuffer.init == Nothing )
+    , ( "negative frame time does not move playback", SnapshotBuffer.advance (-10) warm == warm )
+    , ( "a slow server does not drain playback", slowLag ≥ 12 && slowLag ≤ 24 )
+    , ( "a packet flood keeps bounded snapshot history", List.length overflow.snapshots ≤ 16 )
+    , ( "a suspended tab resumes at the latest snapshot"
+      , near (headX (SnapshotBuffer.advance 2000 warm)) 36
+      )
+    ]
+
+
+snapshot : Int → Protocol.Snapshot.Type
+snapshot tick =
+    { tick = tick
+    , you = "one"
+    , alive = True
+    , cameraX = toFloat tick * 6
+    , cameraY = 0
+    , snakes =
+        [ { id = "one"
+          , name = "One"
+          , color = Color.Moss
+          , length = 12
+          , alive = True
+          , body = [ { index = 0, x = toFloat tick * 6, y = 100 } ]
+          }
+        ]
+    , food = []
+    , scores = []
+    }
+
+
+headX : SnapshotBuffer.Model → Float
+headX buffer =
+    Maybe.withDefault
+        (Maybe.andThen (SnapshotBuffer.frame buffer) λframe →
+            Maybe.andThen (List.head frame.snakes) λsnake → Maybe.map (List.head snake.body) .x
+        )
+        (-1)
+
+
+cameraX : SnapshotBuffer.Model → Float
+cameraX buffer = Maybe.withDefault (Maybe.map (SnapshotBuffer.frame buffer) .cameraX) (-1)
+
+
+near : Float, Float → Bool
+near a b = abs (a - b) < 0.0001

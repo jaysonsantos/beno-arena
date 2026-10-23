@@ -5,10 +5,10 @@ import Cmd exposing (Cmd)
 import Dom
 import Duration
 import Html exposing (Html)
-import Interpolation
 import Palette exposing (Color)
 import Protocol
 import Rules as Game
+import SnapshotBuffer
 import Sub exposing (Sub)
 import Time
 import Viewport
@@ -19,8 +19,7 @@ pub type alias Model =
     active : Bool
     socket : Maybe Socket
     current : Maybe Protocol.Snapshot.Type
-    previous : Maybe Protocol.Snapshot.Type
-    blend : Float
+    playback : SnapshotBuffer.Model
     name : String
     color : Color.Type
     note : String
@@ -42,8 +41,7 @@ init =
     { active = False
     , socket = Nothing
     , current = Nothing
-    , previous = Nothing
-    , blend = 1
+    , playback = SnapshotBuffer.init
     , name = ""
     , color = Color.Moss
     , note = "Choose Enter arena to connect."
@@ -58,7 +56,9 @@ start name color model =
         Just socket →
             ( next, joinCommand socket name color )
         Nothing →
-            ( { next | active = True, current = Nothing, previous = Nothing }, Cmd.none )
+            ( { next | active = True, current = Nothing, playback = SnapshotBuffer.init }
+            , Cmd.none
+            )
 
 
 pub update : Msg, Model → Model × Cmd Msg
@@ -101,9 +101,8 @@ update msg model =
                                 ( model, Cmd.none )
                             else
                                 ( { model
-                                    | previous = model.current
-                                    , current = Just data.snapshot
-                                    , blend = 0
+                                    | current = Just data.snapshot
+                                    , playback = SnapshotBuffer.receive data.snapshot model.playback
                                     , note =
                                         if data.snapshot.alive then
                                             "Move the pointer, drag a finger, or use the arrow keys."
@@ -133,11 +132,11 @@ update msg model =
             , Cmd.none
             )
         Frame delta →
-            ( { model | blend = min 1 (model.blend + delta / toFloat Game.tickMillis) }, Cmd.none )
+            ( { model | playback = SnapshotBuffer.advance delta model.playback }, Cmd.none )
         Pointed x y boxWidth boxHeight →
             case model.current of
                 Just snapshot →
-                    frame = Interpolation.between model.previous snapshot model.blend
+                    frame = Maybe.withDefault (SnapshotBuffer.frame model.playback) snapshot
                     position =
                         Viewport.point
                             { x = frame.cameraX, y = frame.cameraY }
@@ -241,7 +240,7 @@ view model =
             Nothing →
                 <div class="live-wait"><h2>Connect to the arena</h2><p>{model.note}</p></div>
             Just latest →
-                frame = Interpolation.between model.previous latest model.blend
+                frame = Maybe.withDefault (SnapshotBuffer.frame model.playback) latest
                 <svg
                     id="live-arena"
                     class="arena-art"

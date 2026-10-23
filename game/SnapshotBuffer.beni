@@ -1,0 +1,120 @@
+--! A pure playback clock for authoritative snapshots.
+
+import Interpolation
+import Protocol
+import Rules as Game
+
+
+pub type alias Model =
+    snapshots : List Protocol.Snapshot.Type
+    position : Float
+
+
+pub init : Model
+init = { snapshots = [], position = 0 }
+
+
+pub delayMillis : Float
+delayMillis = 3 * toFloat Game.tickMillis
+
+
+maxSnapshots : Int
+maxSnapshots = 16
+
+
+resumeMillis : Float
+resumeMillis = toFloat maxSnapshots * toFloat Game.tickMillis
+
+
+slowRate : Float
+slowRate = 0.8
+
+
+fastRate : Float
+fastRate = 1.1
+
+
+pub receive : Protocol.Snapshot.Type, Model → Model
+receive snapshot model =
+    case List.last model.snapshots of
+        Nothing →
+            start snapshot
+        Just latest →
+            if snapshot.tick ≤ latest.tick then
+                model
+            else if
+                snapshot.you ≠ latest.you
+                    || (snapshot.alive && not latest.alive)
+                    || time snapshot - time latest > resumeMillis
+            then
+                start snapshot
+            else
+                snapshots = List.push model.snapshots snapshot
+                if List.length snapshots > maxSnapshots then
+                    start snapshot
+                else
+                    { model | snapshots = snapshots }
+
+
+pub advance : Float, Model → Model
+advance delta model =
+    case List.last model.snapshots of
+        Nothing →
+            model
+        Just latest →
+            if delta > resumeMillis then
+                start latest
+            else
+                depth = time latest - model.position
+                -- Keep a slow host from draining the buffer. Never reset the clock on packet arrival.
+                rate =
+                    if depth < delayMillis - toFloat Game.tickMillis then
+                        slowRate
+                    else if depth > delayMillis + toFloat Game.tickMillis then
+                        fastRate
+                    else
+                        1
+                position = min (time latest) (model.position + max 0 delta * rate)
+                { snapshots = prune position model.snapshots, position = position }
+
+
+pub frame : Model → Maybe Protocol.Snapshot.Type
+frame model = sample model.position model.snapshots
+
+
+sample : Float, List Protocol.Snapshot.Type → Maybe Protocol.Snapshot.Type
+sample position snapshots =
+    case snapshots of
+        [ before, after, …rest ] →
+            if position < time before then
+                Just before
+            else if position ≥ time after then
+                sample position [ after, …rest ]
+            else
+                Just
+                    (Interpolation.between
+                        (Just before)
+                        after
+                        ((position - time before) / (time after - time before))
+                    )
+        [ latest ] →
+            Just latest
+        [] →
+            Nothing
+
+
+time : Protocol.Snapshot.Type → Float
+time snapshot = toFloat snapshot.tick * toFloat Game.tickMillis
+
+
+start : Protocol.Snapshot.Type → Model
+start snapshot = { snapshots = [ snapshot ], position = time snapshot - delayMillis }
+
+
+prune : Float, List Protocol.Snapshot.Type → List Protocol.Snapshot.Type
+prune position snapshots =
+    case snapshots of
+        [ _, after, …rest ] →
+            if time after ≤ position then prune position [ after, …rest ] else snapshots
+        _ →
+            snapshots

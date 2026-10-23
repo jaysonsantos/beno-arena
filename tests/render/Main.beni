@@ -7,6 +7,7 @@ import Live
 import Palette exposing (Color)
 import Protocol
 import Rules as Game
+import SnapshotBuffer
 import Sub exposing (Sub)
 import Tea
 
@@ -42,8 +43,11 @@ view elapsed =
         { base
             | active = True
             , current = Just scene
-            , previous = Just previous
-            , blend = (sin (elapsed / 500) + 1) / 2
+            , playback =
+                { SnapshotBuffer.init
+                    | snapshots = [ previous, scene ]
+                    , position = (sin (elapsed / 500) + 1) / 2 * toFloat Game.tickMillis
+                }
             , note = "Local SVG benchmark: 16 snakes, 2,880 body samples, 600 food circles."
         }
     Html.map (Live.view model) Child
@@ -71,7 +75,8 @@ scene =
 previous : Protocol.Snapshot.Type
 previous =
     { scene
-        | snakes =
+        | tick = 0
+        , snakes =
             List.map scene.snakes λvalue →
                 { value | body = List.map value.body λpart → { part | x = part.x - 6 } }
     }

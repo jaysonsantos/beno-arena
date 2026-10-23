@@ -1,0 +1,61 @@
+import Arena
+import Clock
+import Log
+import Palette exposing (Color)
+import Protocol
+import Rules as Game
+import Schema
+import StorageTrace
+import Worker.Object as Object
+import Worker.Storage as Storage
+
+
+pub observer : Arena.Observer
+observer = { prepare = prepare, event = event }
+
+
+-- Seed storage through the real API before the application's restore reads it.
+-- These fixture writes are separate from the application's save counter.
+prepare : Object.Context String → ⊤
+prepare ctx =
+    case Object.name ctx of
+        Just "cadence" →
+            _ =
+                Storage.put
+                    ctx
+                    (Protocol.Checkpoint.schema ⊤)
+                    Arena.checkpointKey
+                    (Protocol.checkpoint (Game.init 42))
+            ⊤
+        Just "recover-bad" →
+            _ = Storage.put ctx Schema.string Arena.checkpointKey "not a checkpoint"
+            ⊤
+        Just "recover-stale" →
+            game = Game.join (Game.init 42) "orphan" "Orphan" Color.Moss
+            _ =
+                Storage.put
+                    ctx
+                    (Protocol.Checkpoint.schema ⊤)
+                    Arena.checkpointKey
+                    (Protocol.checkpoint game)
+            ⊤
+        _ →
+            ⊤
+
+
+-- Each successful application save adds one line to the transcript's write counter.
+event : Object.Context String, String, Game.State → ⊤
+event ctx kind game =
+    value =
+        { arena = Maybe.withDefault (Object.name ctx) "unnamed"
+        , kind = kind
+        , tick = game.tick
+        , players = List.length game.players
+        , randomState = (Protocol.checkpoint game).randomState
+        , clock = Clock.now ⊤
+        }
+    case StorageTrace.Event.print value of
+        Ok text →
+            Log.info ("arena-test " ++ text)
+        Err _ →
+            Log.error "The arena test event did not print."

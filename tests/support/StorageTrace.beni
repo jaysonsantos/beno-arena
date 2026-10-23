@@ -1,0 +1,9 @@
+--! The local test entry alone emits these events. Production uses empty observers.
+
+pub schema Event =
+    arena : String
+    kind : String
+    tick : Int
+    players : Int
+    randomState : Int
+    clock : Int

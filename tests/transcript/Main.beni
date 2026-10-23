@@ -4,6 +4,7 @@ import Io
 import Node
 import ProbeTests
 import Protocol
+import StorageChecks
 import Transcript as Probe
 
 
@@ -13,6 +14,12 @@ main = Io.run λ⊤ →
         Err _ →
             Node.exitWith "FAIL: the Worker transcript is absent." 1
         Ok transcript →
+            storage =
+                case Io.readFile ".scratch/workers/storage-current.log" of
+                    Ok text →
+                        text
+                    Err _ →
+                        ""
             alice = Probe.snapshots transcript "alice"
             bob = Probe.snapshots transcript "bob"
             carol = Probe.snapshots transcript "carol"
@@ -69,6 +76,7 @@ main = Io.run λ⊤ →
                   )
                 , ( "no request times out", not (String.contains transcript "no response in") )
                 , ( "the runtime has no errors", not (String.contains transcript "| err:") )
+                , …StorageChecks.checks storage
                 , …ProbeTests.checks
                 ]
             output =

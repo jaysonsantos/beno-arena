@@ -1,0 +1,7 @@
+import Arena
+import Trace
+import Worker
+
+
+main : Worker.Program
+main = Arena.program Trace.observer

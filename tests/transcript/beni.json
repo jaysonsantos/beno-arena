@@ -2,7 +2,7 @@
   "name": "snake-arena-transcript-tests",
   "build": {
     "platform": "node",
-    "paths": ["../../game", "."],
+    "paths": ["../../game", "../support", "."],
     "out": "../../build/transcript-tests"
   }
 }

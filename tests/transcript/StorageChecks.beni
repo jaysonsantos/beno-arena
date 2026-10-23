@@ -1,0 +1,88 @@
+import Protocol
+import Rules as Game
+import StorageTrace
+
+
+pub checks : String → List (String × Bool)
+checks transcript =
+    events = read transcript
+    at = λarena → List.filter events λevent → event.arena == arena
+    writes = λarena → List.filter (at arena) λevent → event.kind == "write"
+    cadence = at "cadence"
+    cadenceWrites = writes "cadence"
+    periodic = List.filter cadenceWrites λevent → event.players > 0
+    seedChecks = List.filter events λevent →
+        event.kind == "restore" && List.member [ "fresh", "recover-bad" ] event.arena
+    bad = writes "recover-bad"
+    stale = writes "recover-stale"
+    raw = List.filter (String.lines transcript) λline → String.startsWith line prefix
+    [ ( "the storage trace parses every event"
+      , List.length events == List.length raw && not (List.isEmpty events)
+      )
+    , ( "a fresh arena does not write before a join", List.isEmpty (writes "fresh") )
+    , ( "an invalid checkpoint writes one replacement"
+      , List.length bad == 1 && List.all bad λevent → event.players == 0 && event.tick == 0
+      )
+    , ( "an invalid checkpoint logs its reset"
+      , String.contains transcript "The arena checkpoint did not parse. A new game replaces it."
+      )
+    , ( "restore writes after it removes stale players"
+      , List.length stale == 1 && List.all stale λevent → event.players == 0
+      )
+    , ( "fresh and reset games use a recent clock seed"
+      , List.length seedChecks == 2 && List.all seedChecks recentSeed
+      )
+    , ( "duplicate joins do not add storage writes"
+      , List.length (List.filter cadenceWrites λevent → event.tick == 0) == 1
+      )
+    , ( "twenty ticks broadcast twenty snapshots"
+      , List.map (List.filter cadence λevent → event.kind == "broadcast") .tick == List.range 1 20
+      )
+    , ( "active checkpoints write only at the twentieth tick"
+      , List.map periodic .tick == [ 0, 20 ]
+      )
+    , ( "the checkpoint follows the twentieth broadcast"
+      , List.map (List.filter cadence λevent → event.tick == 20 && event.players > 0) .kind
+          == [ "broadcast", "write" ]
+      )
+    , ( "a leave writes the empty game once"
+      , List.length cadenceWrites == 3
+          && List.length (List.filter cadenceWrites λevent → event.tick == 20 && event.players == 0)
+              == 1
+      )
+    , ( "storage steps have no unexpected runtime error"
+      , not
+          (List.any (String.lines transcript) λline →
+              String.startsWith line "| err:"
+                  && not
+                      (String.contains
+                          line
+                          "The arena checkpoint did not parse. A new game replaces it."
+                      )
+          )
+      )
+    ]
+
+
+recentSeed : StorageTrace.Event.Type → Bool
+recentSeed event =
+    constant = (Protocol.checkpoint (Game.init 42)).randomState
+    event.randomState ≠ constant
+        && List.any (List.range (event.clock - 1000) event.clock) λseed →
+            (Protocol.checkpoint (Game.init seed)).randomState == event.randomState
+
+
+prefix : String
+prefix = "| out: arena-test "
+
+
+pub read : String → List StorageTrace.Event.Type
+read transcript = List.filterMap (String.lines transcript) λline →
+    if String.startsWith line prefix then
+        case StorageTrace.Event.parse (String.dropLeft line (String.length prefix)) of
+            Ok event →
+                Just event
+            Err _ →
+                Nothing
+    else
+        Nothing

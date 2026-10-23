@@ -12,10 +12,13 @@ test_result=0
 for mode in development release; do
   options=(--test-hooks --out="$PWD/build/worker-test")
   if [[ "$mode" == "release" ]]; then options+=(--release); fi
-  (cd server && beni build "${options[@]}")
+  (cd tests/worker-trace && beni build "${options[@]}")
   node "$BENI_SOURCE/tests/workers/driver.mjs" "$PWD/build/worker-test" \
     tests/workers/arena.steps > ".scratch/workers/$mode.log"
   cp ".scratch/workers/$mode.log" .scratch/workers/current.log
+  node "$BENI_SOURCE/tests/workers/driver.mjs" "$PWD/build/worker-test" \
+    tests/workers/storage.steps > ".scratch/workers/storage-$mode.log"
+  cp ".scratch/workers/storage-$mode.log" .scratch/workers/storage-current.log
   echo "Check $mode Worker transcript."
   if ! node build/transcript-tests/_main.mjs; then test_result=1; fi
 done

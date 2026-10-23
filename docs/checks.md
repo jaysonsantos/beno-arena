@@ -7,7 +7,7 @@ No account operation or deployment ran.
 
 ## Rules and protocol
 
-`scripts/test-rules.sh` passed all 76 assertions.
+`scripts/test-rules.sh` passed all 77 assertions.
 The checks use fixed ticks and seeded PCG food.
 They cover movement, turns, growth, collisions, death food, safe spawn, rejoin, scores, limits, schemas, checkpoints, camera bounds, and interpolation indexes.
 They also round-trip every Color through join input, snapshots, and checkpoints. Numeric colors fail.
@@ -15,6 +15,8 @@ The review regressions force movement direction, the exact turn limit, score ord
 They also check body clipping, dead snakes, name length, valid oversized JSON, restored ticks, join limits, aim coalescing, recovery, and checkpoint cadence.
 The final death forces a checkpoint before idle hibernation. Its regression restores the dead player and the terminal tick.
 All twelve requested rule and protocol mutants compiled and failed these assertions. Five session mutants also compiled and failed.
+The spawn fixture puts a tail across the first candidate. Its head stays in the opposite corner.
+The head-only spawn mutant R24 fails R21. All 77 checks pass when spawn checks all body segments.
 
 ## Worker and sockets
 
@@ -22,7 +24,7 @@ All twelve requested rule and protocol mutants compiled and failed these asserti
 All listeners use `127.0.0.1`. The driver disposes each runtime after the check.
 The test source and transcript assertions use beni.
 
-Both development and release builds pass 18 of 19 runtime assertions. Six transcript-parser checks also pass:
+Both development and release builds pass 18 of 19 socket assertions. All 12 storage assertions and six parser checks pass:
 
 - Two clients receive matching ticks, separate identities, visible food, and shared scores.
 - A third client receives separate state and scores from another arena.
@@ -33,13 +35,38 @@ Both development and release builds pass 18 of 19 runtime assertions. Six transc
 - Two aim points before one tick make the snake turn toward the newest point.
 - Parser checks detect missing or duplicate replies. They isolate each close receive and require the peer code.
 
+The test Worker uses the same arena handlers as the production Worker.
+The production entry supplies empty observers. It does not import the trace or the storage fixtures.
+The test entry records one schema event after each successful application save.
+The transcript counts these events by arena, tick, and remaining players.
+It also records restore state and broadcast order. Fixture setup writes do not enter the application save count.
+
+The storage steps cover a fresh arena, an invalid checkpoint, and stale players.
+They send 40 repeated joins across two ticks, then drive a total of 20 ticks.
+The checks require one changed join write, one periodic write at tick 20, and one leave write.
+The periodic write must follow the broadcast event at tick 20.
+Fresh and reset seeds must match a clock value from the previous second.
+An invalid checkpoint must log its reset and write a replacement.
+An unused fresh arena must not write. Restore must write after it removes stale players.
+The test uses public `Storage`, `Object.name`, `Clock`, and `Log` APIs.
+All six server mutants compile and fail storage assertions beyond the retained close failure:
+
+| Mutant | Change | Assertion that fails |
+|---|---|---|
+| W01 | Save every tick | Active checkpoints write only at tick 20 |
+| W02 | Move only the due save before broadcast | The checkpoint follows the twentieth broadcast |
+| W03 | Save every join | Duplicate joins do not add storage writes |
+| W04 | Remove restore saves | Invalid and stale checkpoints require writes |
+| W05 | Restore with seed 42 | Fresh and reset games use a recent clock seed |
+| W06 | Remove leave saves | A leave writes the empty game once |
+
 The client close check fails in both modes.
 Three clients send a normal close but receive no close reply within the driver's five-second limit.
 The game removes the departing player. [Beni PR #819](https://github.com/canassa/beni/pull/819) adds the platform close reply.
 The current compiler pin still lacks that fix. The close check requires code `1000` for Alice and `4001` for Carol.
 The failed assertion stays in the suite. The suite returns a failure result.
 The review ran lint, rule, Worker, browser, and benchmark commands separately.
-Lint, all 76 rule assertions, and the browser output checks passed.
+Lint, all 77 rule assertions, and the browser output checks passed.
 The Worker command returned `1` for the close defect after both modes ran.
 The suite entrypoint also continues to browser checks after a failed Worker assertion.
 

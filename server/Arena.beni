@@ -1,0 +1,232 @@
+import Clock
+import Duration
+import Log
+import Protocol
+import Rules as Game
+import Schema
+import Session
+import WebSocket exposing (Socket)
+import Worker exposing (Context, Request, Response)
+import Worker.Object as Object
+import Worker.Storage as Storage
+
+
+type alias State =
+    Session.State
+
+
+pub checkpointKey : String
+checkpointKey = "arena:v2"
+
+
+-- The production entry supplies no-op observers. Only the test entry records events.
+pub type alias Observer =
+    prepare : Object.Context String → ⊤
+    event : Object.Context String, String, Game.State → ⊤
+
+
+pub silent : Observer
+silent = { prepare = λ_ → ⊤, event = λ_ _ _ → ⊤ }
+
+
+pub program : Observer → Worker.Program
+program observer = Worker.program { fetch = route, objects = [ arena observer ] }
+
+
+-- One definition installs all arena handlers. Tick stays a pure selector.
+arena : Observer → Worker.Definition
+arena observer =
+    Object.define "Arena" Schema.string (restore observer _)
+        { emptyHandlers
+            | request = join
+            , message = λctx state socket value → input observer ctx state socket value
+            , closed = λctx state socket value → left observer ctx state socket value
+            , failed = λctx state socket value → failed observer ctx state socket value
+            , tick = tick
+            , ticked = λctx state → step observer ctx state
+        }
+
+
+emptyHandlers : Object.Handlers State String
+emptyHandlers = Object.none
+
+
+-- This selector is pure. It never waits or reaches the host.
+tick : State → Maybe Duration.Duration
+tick state =
+    if state.healthy && List.any state.game.players .alive then
+        Just (Duration.millis Game.tickMillis)
+    else
+        Nothing
+
+
+restore : Observer, Object.Context String → State
+restore observer ctx =
+    observer.prepare ctx
+    stored = Storage.get ctx (Protocol.Checkpoint.schema ⊤) checkpointKey
+    connected = List.map (Object.sockets ctx) WebSocket.id
+    ( state, reset ) = Session.restore (Clock.now ⊤) stored connected
+    observer.event ctx "restore" state.game
+    if reset then
+        Log.warn "The arena checkpoint did not parse. A new game replaces it."
+    if state.dirty then save observer ctx state else state
+
+
+join : Object.Context String, State, Request → State × Response
+join ctx state request =
+    if not state.healthy then
+        ( state, Worker.text 503 "The arena storage is not available." )
+    else if not (sameOrigin request) then
+        ( state, Worker.text 403 "Use the page from this server." )
+    else if List.length (Object.sockets ctx) ≥ Game.maxPlayers then
+        ( state, Worker.text 503 "The arena is full." )
+    else
+        case Object.accept ctx request [] of
+            Ok ( socket, response ) →
+                send socket (Protocol.Packet.Welcome { id = WebSocket.id socket })
+                ( state, response )
+            Err Object.NotAnUpgrade →
+                ( state, Worker.text 426 "Open a WebSocket to join the arena." )
+            Err _ →
+                ( state, Worker.text 503 "The arena cannot accept this connection." )
+
+
+sameOrigin : Request → Bool
+sameOrigin request =
+    case ( Worker.header request "origin", String.split (Worker.url request) "/" ) of
+        ( Nothing, _ ) →
+            True
+        ( Just origin, [ scheme, "", host, …_ ] ) →
+            origin == scheme ++ "//" ++ host
+        _ →
+            False
+
+
+input : Observer, Object.Context String, State, Socket, String → State
+input observer ctx state socket text =
+    if not state.healthy then
+        state
+    else
+        case Protocol.readInput text of
+            Err reason →
+                send socket (Protocol.Packet.Rejected { message = reason })
+                _ = WebSocket.close socket { code = 1008, reason = "Invalid input." }
+                state
+            Ok command →
+                id = WebSocket.id socket
+                case command of
+                    Protocol.Input.Join data →
+                        ( joined, reply ) = Session.join state id data.name data.color
+                        next =
+                            if Session.changed state joined then
+                                save observer ctx joined
+                            else
+                                joined
+                        case reply of
+                            Just alive →
+                                send
+                                    socket
+                                    (Protocol.Packet.Joined { alive = alive && next.healthy })
+                            Nothing →
+                                ⊤
+                        next
+                    Protocol.Input.Aim point →
+                        Session.aim state id point
+
+
+step : Observer, Object.Context String, State → State
+step observer ctx state =
+    next = Session.step state
+    if next.healthy then
+        List.foldl (Object.sockets ctx) ⊤ λsocket _ →
+            send
+                socket
+                (Protocol.Packet.State
+                    { snapshot = Protocol.snapshot next.game (WebSocket.id socket) }
+                )
+    observer.event ctx "broadcast" next.game
+    if Session.checkpointDue next then save observer ctx next else next
+
+
+save : Observer, Object.Context String, State → State
+save observer ctx state =
+    case
+        Storage.put
+            ctx
+            (Protocol.Checkpoint.schema ⊤)
+            checkpointKey
+            (Protocol.checkpoint state.game)
+    of
+        Ok ⊤ →
+            observer.event ctx "write" state.game
+            Session.saved state
+        Err _ →
+            Log.error "The arena checkpoint write failed. The arena stopped."
+            closeAll ctx
+            { state | healthy = False }
+
+
+left : Observer, Object.Context String, State, Socket, WebSocket.Close → State
+left observer ctx state socket _ =
+    -- The platform owns the peer close reply under beni #819.
+    if state.healthy then
+        next = Session.leave state (WebSocket.id socket)
+        if Session.changed state next then save observer ctx next else next
+    else
+        state
+
+
+failed : Observer, Object.Context String, State, Socket, String → State
+failed observer ctx state socket _ =
+    _ = WebSocket.close socket { code = 1011, reason = "The connection failed." }
+    left observer ctx state socket { code = 1006, reason = "" }
+
+
+closeAll : Object.Context String → ⊤
+closeAll ctx = List.foldl (Object.sockets ctx) ⊤ λsocket _ →
+    _ =
+        WebSocket.close socket
+            { code = 1011, reason = "The arena storage failed. Reconnect later." }
+    ⊤
+
+
+send : Socket, Protocol.Packet.Type → ⊤
+send socket packet =
+    case Protocol.Packet.print packet of
+        Ok text →
+            _ = WebSocket.write socket text
+            ⊤
+        Err _ →
+            Log.error "The server packet does not match its schema."
+            _ = WebSocket.close socket { code = 1011, reason = "The server packet failed." }
+            ⊤
+
+
+route : Context, Request → Response
+route ctx request =
+    case String.split (Worker.path request) "/" of
+        [ "", "arena", name, …rest ] →
+            if String.isEmpty name || String.length name > 32 then
+                Worker.text 400 "Use an arena name of 1 to 32 characters."
+            else
+                case Worker.objects (Worker.env ctx) "ARENAS" Schema.string of
+                    Just arenas →
+                        case Worker.forward (Worker.byName arenas name) request of
+                            Ok response →
+                                response
+                            Err _ →
+                                Worker.text 503 "The arena is not available. Reconnect later."
+                    Nothing →
+                        Worker.text 503 "The ARENAS binding is absent."
+        [ "", "health" ] →
+            Worker.text 200 "Snake Arena is ready."
+        _ →
+            case Worker.service (Worker.env ctx) "ASSETS" of
+                Just assets →
+                    case Worker.callService assets request of
+                        Ok response →
+                            response
+                        Err _ →
+                            Worker.text 503 "The page is not available."
+                Nothing →
+                    Worker.text 404 "No such page."

@@ -1,0 +1,9 @@
+{
+  "name": "snake-arena-worker-trace",
+  "build": {
+    "platform": "cloudflare",
+    "paths": ["../../game", "../../server/Arena.beni", "../support", "."],
+    "out": "../../build/worker-test"
+  },
+  "exports": ["Arena"]
+}

@@ -1,6 +1,6 @@
 # Beni capability check
 
-Source revision: `31d1025ac92c3a9383a1e355722ffac848910810`.
+Source revision: `ffc472d05beaf406f9fd8213bb02352364214610`.
 The pin includes the tested peer-close fix from [beni PR #819](https://github.com/canassa/beni/pull/819).
 The earlier report recorded gaps in sockets, pointer coordinates, and the Cloudflare platform.
 This revision supplies those APIs.

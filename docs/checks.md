@@ -3,7 +3,7 @@
 ## Current validation
 
 Date: `2026-10-23`.
-Compiler source: `31d1025ac92c3a9383a1e355722ffac848910810`.
+Compiler source: `ffc472d05beaf406f9fd8213bb02352364214610`.
 The project keeps the compiler and Workers tools on this one pin.
 It includes the peer-close fix from [beni PR #819](https://github.com/canassa/beni/pull/819).
 
@@ -15,6 +15,8 @@ Both Worker build modes pass all 19 socket assertions, 12 storage assertions, an
 The aim fixture waits for each server observer event before its manual tick.
 The storage fixture waits for the final zero-player checkpoint before teardown.
 The assertions still check the newest aim and the exact peer close codes.
+
+The browser comparison below uses the earlier `31d1025ac92c3a9383a1e355722ffac848910810` pin.
 
 A 15-second local browser sample contains 1,800 movement intervals and no stationary interval.
 The earlier local sample contains 45 stationary intervals in the same interval count.

@@ -168,6 +168,7 @@ h1 > span { color: #7c8675; }
 .rule-card p { color: #7b8373; font-size: 10px; margin-top: 5px; line-height: 1.5; }
 .site-footer { display: flex; gap: 15px; justify-content: space-between; border-top: 1px solid var(--line); padding: 21px 0 23px; color: #8d9582; font-size: 8px; letter-spacing: 1.3px; }
 .site-footer strong { color: #56634c; font-weight: 700; }
+.site-footer a { text-decoration: underline; text-underline-offset: 3px; }
 .wide-preview { grid-template-columns: minmax(0, 1fr); }
 .wide-preview .lobby { display: none; }
 .wide-preview .arena, .wide-preview .arena-art { max-height: 650px; }

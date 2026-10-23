@@ -217,7 +217,9 @@ view model =
             </section>
         </main>
         <footer class="site-footer">
-            <span>BUILT IN <strong>BENI</strong></span><span>JUST ONE MORE ROUND.</span><span>{if model.live.active then "LIVE · AUTHORITATIVE SERVER" else "PREVIEW · NO LIVE PLAYERS"}</span>
+            <span>
+                BUILT WITH <a href="https://github.com/canassa/beni"><strong>BENI</strong></a>
+            </span><span>JUST ONE MORE ROUND.</span><span>{if model.live.active then "LIVE · AUTHORITATIVE SERVER" else "PREVIEW · NO LIVE PLAYERS"}</span>
         </footer>
     </div>
 

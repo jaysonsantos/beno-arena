@@ -1,0 +1,2 @@
+# Use Elm highlighting until GitHub has a Beni grammar.
+*.beni linguist-language=Elm

@@ -14,6 +14,8 @@ concurrency:
 jobs:
   lint:
     runs-on: ubuntu-26.04
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -23,9 +25,12 @@ jobs:
         with:
           name: jaysonsantos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - run: nix develop --command scripts/lint.sh
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv shell -- scripts/lint.sh
   test:
     runs-on: ubuntu-26.04
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -35,9 +40,12 @@ jobs:
         with:
           name: jaysonsantos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - run: nix develop --command scripts/test.sh
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv shell -- scripts/test.sh
   build:
     runs-on: ubuntu-26.04
+    env:
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -47,7 +55,8 @@ jobs:
         with:
           name: jaysonsantos
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - run: nix build .#frontend .#worker --max-jobs 1 --cores 2
+      - run: nix profile install nixpkgs#devenv
+      - run: devenv shell -- nix build .#frontend .#worker --max-jobs 1 --cores 2
   check:
     name: check
     if: always()

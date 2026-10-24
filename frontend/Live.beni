@@ -60,7 +60,7 @@ start name color model =
     next = { model | name = name, color = color, note = "Connect to the arena…" }
     case model.socket of
         Just socket →
-            ( next, joinCommand socket name color )
+            ( next, Cmd.batch [ joinCommand socket name color, Cmd.afterRender focusArena ] )
         Nothing →
             ( { next | active = True, current = Nothing, playback = SnapshotBuffer.init }
             , Cmd.afterRender focusArena

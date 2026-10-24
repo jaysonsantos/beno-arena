@@ -136,6 +136,6 @@ Recommendation: keep Cloudflare as the first target.
 
 ## Evidence
 
-- [Pinned beni Cloudflare platform](https://github.com/canassa/beni/tree/ffc472d05beaf406f9fd8213bb02352364214610/platforms/cloudflare)
-- [Pinned beni Workers tools shell](https://github.com/canassa/beni/blob/ffc472d05beaf406f9fd8213bb02352364214610/flake.nix)
-- [Pinned platform design, section 9.12](https://github.com/canassa/beni/blob/ffc472d05beaf406f9fd8213bb02352364214610/docs/design/boundary.md)
+- [Pinned beni Cloudflare platform](https://github.com/canassa/beni/tree/84c0d23976f7cdbe22f3addf1eeb3f8442c32847/platforms/cloudflare)
+- [Pinned beni Workers tools shell](https://github.com/canassa/beni/blob/84c0d23976f7cdbe22f3addf1eeb3f8442c32847/flake.nix)
+- [Pinned platform design, section 9.12](https://github.com/canassa/beni/blob/84c0d23976f7cdbe22f3addf1eeb3f8442c32847/docs/design/boundary.md)

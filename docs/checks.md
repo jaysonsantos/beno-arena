@@ -3,7 +3,7 @@
 ## Current validation
 
 Date: `2026-10-23`.
-Compiler source: `ffc472d05beaf406f9fd8213bb02352364214610`.
+Compiler source: `84c0d23976f7cdbe22f3addf1eeb3f8442c32847`.
 The project keeps the compiler and Workers tools on this one pin.
 It includes the peer-close fix from [beni PR #819](https://github.com/canassa/beni/pull/819).
 

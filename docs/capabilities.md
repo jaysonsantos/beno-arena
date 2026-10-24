@@ -1,7 +1,8 @@
 # Beni capability check
 
-Source revision: `ffc472d05beaf406f9fd8213bb02352364214610`.
+Source revision: `84c0d23976f7cdbe22f3addf1eeb3f8442c32847`.
 The pin includes the tested peer-close fix from [beni PR #819](https://github.com/canassa/beni/pull/819).
+It also includes the `Dom` full-screen API from [beni PR #906](https://github.com/canassa/beni/pull/906).
 The earlier report recorded gaps in sockets, pointer coordinates, and the Cloudflare platform.
 This revision supplies those APIs.
 

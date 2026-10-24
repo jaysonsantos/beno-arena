@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ "${BENO_TOOLCHAIN:-}" != "1" ]]; then
-  exec nix develop --command bash scripts/build.sh "$@"
+  exec devenv shell -- bash scripts/build.sh "$@"
 fi
 bash scripts/build-page.sh
 bash scripts/build-worker.sh

@@ -22,7 +22,7 @@ The tests reuse beni's unchanged Miniflare driver.
 ## Run locally
 
 ```sh
-nix develop .#workers
+devenv shell
 scripts/dev.sh
 ```
 
@@ -79,7 +79,7 @@ scripts/all.sh
 scripts/benchmark.sh
 ```
 
-The scripts select the required Nix shell when necessary.
+The scripts select the devenv shell when necessary.
 `test.sh` checks fixed-seed rules, the local Worker with several clients, and desktop and mobile renders.
 The Worker checks every client message with the shared schema.
 Clients cannot set a snake's position, length, score, or simulation tick.

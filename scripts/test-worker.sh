@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ "${BENO_TOOLCHAIN:-}" != "1" || -z "${BENI_MINIFLARE:-}" ]]; then
-  exec nix develop .#workers --command bash scripts/test-worker.sh "$@"
+  exec devenv shell -- bash scripts/test-worker.sh "$@"
 fi
 : "${BENI_MINIFLARE:?Enter the workers development shell.}"
 : "${BENI_SOURCE:?Enter the pinned development shell.}"

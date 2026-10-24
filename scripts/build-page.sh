@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ "${BENO_TOOLCHAIN:-}" != "1" ]]; then
-  exec nix develop --command bash scripts/build-page.sh "$@"
+  exec devenv shell -- bash scripts/build-page.sh "$@"
 fi
 beni build --release --source-maps
 cp frontend/style.css build/page/style.css

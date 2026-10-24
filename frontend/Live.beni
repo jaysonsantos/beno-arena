@@ -36,6 +36,7 @@ pub type Msg
     | ExitFullscreen
     | Fullscreen Bool
     | Refused Dom.FullscreenError
+    | Rejoin
     | Flush
     | Stop
     | Unsent WebSocket.WriteError
@@ -57,7 +58,7 @@ init =
 
 pub start : String, Color.Type, Model → Model × Cmd Msg
 start name color model =
-    next = { model | name = name, color = color, note = "Connect to the arena…" }
+    next = { model | name = name, color = color, pending = Nothing, note = "Connect to the arena…" }
     case model.socket of
         Just socket →
             ( next, Cmd.batch [ joinCommand socket name color, Cmd.afterRender focusArena ] )
@@ -113,7 +114,7 @@ update msg model =
                                         if data.snapshot.alive then
                                             "Move the pointer, drag a finger, or use the arrow keys or WASD."
                                         else
-                                            "Your snake died. Choose Enter arena to join again."
+                                            "Your snake died. Choose Rejoin arena to play again."
                                   }
                                 , Cmd.none
                                 )
@@ -185,6 +186,8 @@ update msg model =
                             ( model, Cmd.none )
                 Nothing →
                     ( model, Cmd.none )
+        Rejoin →
+            start model.name model.color model
         EnterFullscreen →
             ( model, Cmd.perform requestFullscreen )
         ExitFullscreen →
@@ -413,5 +416,12 @@ view model =
             <div class="preview-caption">
                 <span class="tiny-label">SERVER STATE · 20 TICKS / SECOND</span><p>{model.note}</p>
             </div>
+            {if
+                Maybe.withDefault (Maybe.map model.current λsnapshot → not snapshot.alive) False
+             then
+                <button class="rejoin-button" onClick={Rejoin}>Rejoin arena</button>
+             else
+                <span />
+            }
         </div>
     </div>

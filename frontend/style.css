@@ -248,7 +248,12 @@ h1 > span { color: #7c8675; }
   pointer-events: auto; color: #dce8d5; background: #26372b;
   border: 1px solid #51644a; border-radius: 5px; padding: 8px 11px; font-size: 11px;
 }
-.live-arena .arena-bottom { background: #142018e8; border-radius: 6px; padding: 10px; }
+.live-arena .arena-bottom { background: #142018e8; border-radius: 6px; padding: 10px; gap: 12px; flex-wrap: wrap; }
+.live-arena .rejoin-button {
+  pointer-events: auto; flex-shrink: 0; min-height: 44px; padding: 10px 18px;
+  color: #142018; background: var(--moss); border: 1px solid #dce8d5; border-radius: 5px;
+  font-size: 14px; font-weight: 700;
+}
 .live-arena .preview-caption p { font-size: 12px; line-height: 1.5; }
 .live-wait { min-height: 490px; display: grid; align-content: center; gap: 16px; padding: 40px; color: #dce8d5; }
 .live-wait p { line-height: 1.6; font-size: 13px; }

@@ -8,7 +8,8 @@ The client buffers 150 milliseconds of snapshots to absorb network gaps and pack
 Steering input still leaves the client on the next input tick.
 
 Eat food to grow. Avoid all snake bodies, including your own, and the arena wall.
-A dead snake becomes food. Choose **Enter arena** to join again.
+A dead snake becomes food. Choose **Rejoin arena** in the game screen to play again.
+You keep your name, color, and full screen view.
 The score list shows the five longest live snakes.
 The initial arena remains a separate illustration until you connect.
 

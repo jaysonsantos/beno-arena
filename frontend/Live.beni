@@ -32,7 +32,10 @@ pub type Msg
     | Frame Float
     | Pointed Float Float Float Float
     | Key String
+    | EnterFullscreen
+    | ExitFullscreen
     | Fullscreen Bool
+    | Refused Dom.FullscreenError
     | Flush
     | Stop
     | Unsent WebSocket.WriteError
@@ -60,7 +63,7 @@ start name color model =
             ( next, joinCommand socket name color )
         Nothing →
             ( { next | active = True, current = Nothing, playback = SnapshotBuffer.init }
-            , Cmd.none
+            , Cmd.afterRender focusArena
             )
 
 
@@ -175,11 +178,22 @@ update msg model =
                                 Just { x = Game.width, y = position.y }
                             _ →
                                 Nothing
-                    ( { model | pending = point }, Cmd.none )
+                    case point of
+                        Just _ →
+                            ( { model | pending = point }, Cmd.none )
+                        Nothing →
+                            ( model, Cmd.none )
                 Nothing →
                     ( model, Cmd.none )
+        EnterFullscreen →
+            ( model, Cmd.perform requestFullscreen )
+        ExitFullscreen →
+            ( { model | fullscreen = False }, Cmd.do Dom.exitFullscreen )
         Fullscreen on →
-            ( { model | fullscreen = on }, Cmd.none )
+            ( { model | fullscreen = on }, Cmd.afterRender focusArena )
+        Refused why →
+            -- The browser keeps its bars: the arena fills the page instead.
+            ( { model | fullscreen = True, note = refusal why }, Cmd.afterRender focusArena )
         Flush →
             case ( model.socket, model.pending ) of
                 ( Just socket, Just point ) →
@@ -188,7 +202,7 @@ update msg model =
                     ( model, Cmd.none )
         Stop →
             ( { init | note = "You left the live arena. The illustration is a preview." }
-            , Cmd.none
+            , Cmd.do Dom.exitFullscreen
             )
         Unsent _ →
             ( { model
@@ -198,6 +212,34 @@ update msg model =
               }
             , Cmd.none
             )
+
+
+requestFullscreen : Cmd.Send Msg → ⊤
+requestFullscreen send =
+    case Dom.requestFullscreen viewId of
+        Ok ⊤ →
+            ⊤
+        Err why →
+            send (Refused why)
+
+
+focusArena : Cmd.Send Msg → ⊤
+focusArena _ =
+    _ = Dom.focus viewId
+    ⊤
+
+
+refusal : Dom.FullscreenError → String
+refusal why =
+    case why of
+        Dom.Unsupported →
+            "This browser cannot show the arena in full screen. The arena fills the page."
+        _ →
+            "The browser refused full screen. The arena fills the page."
+
+
+viewId : String
+viewId = "live-view"
 
 
 joinCommand : Socket, String, Color.Type → Cmd Msg
@@ -220,22 +262,31 @@ subscriptions model =
             [ WebSocket.listen "/arena/main/ws" [] Heard
             , Events.onAnimationFrameDelta Frame
             , Time.every (Duration.millis Game.tickMillis) λ_ → Flush
-            , Events.onKeyDown (keyed model.fullscreen _)
+            , Dom.onFullscreenChange λshown → Fullscreen (shown == Just viewId)
             ]
     else
         Sub.none
 
 
---| Full screen keeps every key but Escape away from the browser. Escape leaves full screen.
-keyed : Bool, Html.Event → Msg
-keyed fullscreen event =
+--| The arena's keys. A steering key (an arrow, or W, A, S or D with no
+--| modifier) does not reach the browser, so it does not scroll the page or
+--| start a browser shortcut. Escape leaves full screen. Every other key
+--| keeps its browser action.
+keyed : Html.Event → Msg
+keyed event =
     key = Html.key event
-    if fullscreen && key == "Escape" then
-        Fullscreen False
-    else
-        if fullscreen then
-            Html.preventDefault event
+    modified = Html.ctrlKey event || Html.metaKey event || Html.altKey event
+    if key == "Escape" then
+        ExitFullscreen
+    else if not modified && isSteering (steer key) then
+        Html.preventDefault event
         Key (steer key)
+    else
+        Key ""
+
+
+isSteering : String → Bool
+isSteering key = key == "ArrowUp" || key == "ArrowDown" || key == "ArrowLeft" || key == "ArrowRight"
 
 
 steer : String → String
@@ -265,16 +316,19 @@ pointer event =
 pub view : Model → Html Msg
 view model =
     <div
+        id={viewId}
         class={if model.fullscreen then "arena live-arena fullscreen" else "arena live-arena"}
         style={Palette.variables}
+        tabindex={0}
+        onKeyDown={keyed}
     >
         <div class="arena-top">
             <span class="preview-badge"><span class="status-dot" /> LIVE MULTIPLAYER</span>
             <span class="arena-actions">
                 {if model.fullscreen then
-                    <button onClick={Fullscreen False}>Exit full screen (Esc)</button>
+                    <button onClick={ExitFullscreen}>Exit full screen (Esc)</button>
                  else
-                    <button onClick={Fullscreen True}>Full screen</button>
+                    <button onClick={EnterFullscreen}>Full screen</button>
                 }<button onClick={Stop}>Leave arena</button>
             </span>
         </div>
